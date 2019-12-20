@@ -1,16 +1,19 @@
-package com.halloween.journote.ui.me;
+package com.halloween.journote.ui.index;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-public class NotificationsViewModel extends ViewModel {
+import com.halloween.journote.MainActivity;
+import com.halloween.journote.R;
+
+public class IndexViewModel extends ViewModel {
 
     private MutableLiveData<String> mText;
 
-    public NotificationsViewModel() {
+    public IndexViewModel() {
         mText = new MutableLiveData<>();
-        mText.setValue("This is notifications fragment");
+        mText.setValue("当前还没有任何笔记哦");
     }
 
     public LiveData<String> getText() {

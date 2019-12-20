@@ -3,23 +3,30 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@+id/navigation_home">
+    app:startDestination="@+id/navigation_index">
 
     <fragment
-        android:id="@+id/navigation_home"
-        android:name="com.halloween.journote.ui.documents.HomeFragment"
-        android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
+        android:id="@+id/navigation_index"
+        android:name="com.halloween.journote.ui.index.IndexFragment"
+        android:label="@string/title_index"
+        tools:layout="@layout/fragment_index" />
 
     <fragment
-        android:id="@+id/navigation_dashboard"
-        android:name="com.halloween.journote.ui.items.DashboardFragment"
-        android:label="@string/title_dashboard"
-        tools:layout="@layout/fragment_dashboard" />
+        android:id="@+id/navigation_calendar"
+        android:name="com.halloween.journote.ui.calendar.CalendarFragment"
+        android:label="@string/title_calendar"
+        tools:layout="@layout/fragment_calendar" />
 
     <fragment
-        android:id="@+id/navigation_notifications"
-        android:name="com.halloween.journote.ui.me.NotificationsFragment"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications" />
+        android:id="@+id/navigation_all"
+        android:name="com.halloween.journote.ui.all.AllFragment"
+        android:label="@string/title_all"
+        tools:layout="@layout/fragment_all" />
+
+    <fragment
+        android:id="@+id/navigation_more"
+        android:name="com.halloween.journote.ui.more.MoreFragment"
+        android:label="@string/title_more"
+        tools:layout="@layout/fragment_more" />
+
 </navigation>

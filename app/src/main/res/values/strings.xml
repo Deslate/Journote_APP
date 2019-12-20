@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">Journote</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="title_index">首页</string>
+    <string name="title_calendar">日历</string>
+    <string name="title_all">全部</string>
+    <string name="title_more">更多</string>
+    <string name="no_record">当前还没有任何笔记哦</string>
 </resources>

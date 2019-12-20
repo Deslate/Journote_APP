@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
+import com.haibin.calendarview.CalendarView;
 import com.halloween.journote.R;
 
 import static com.halloween.journote.MainActivity.actionBar;
@@ -30,12 +31,18 @@ public class CalendarFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_calendar, container, false);
         setCustomActionBar();
         final TextView textView = root.findViewById(R.id.text_dashboard);
+        final CalendarView mCalendarView = root.findViewById(R.id.calendarView ) ;
         calendarViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
                 textView.setText(s);
             }
         });
+
+        mCalendarView.setWeekView(MeiZuWeekView.class) ;
+
+        //public void setOnViewChangeListener(OnViewChangeListener listener);
+
         return root;
     }
     private void setCustomActionBar(){

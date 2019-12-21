@@ -14,12 +14,16 @@ import androidx.appcompat.app.ActionBar;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.halloween.journote.MainActivity;
 import com.halloween.journote.R;
 
 import static com.halloween.journote.MainActivity.actionBar;
 import static com.halloween.journote.MainActivity.decor;
+import static com.halloween.journote.MainActivity.items;
+import static com.halloween.journote.MainActivity.layoutManager;
 
 public class IndexFragment extends Fragment {
 
@@ -33,6 +37,15 @@ public class IndexFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_index, container, false);
         setCustomActionBar();
         setHasOptionsMenu(true);
+
+        /*RecyclerView recyclerView = (RecyclerView) root.findViewById(R.id.index_recycler_view);
+
+        recyclerView.setLayoutManager(layoutManager);
+        ItemListAdapter adapter = new ItemListAdapter(items);
+        recyclerView.setAdapter(adapter);
+
+         */
+
         final TextView textView = root.findViewById(R.id.text_index);
 
         indexViewModel.getText().observe(this, new Observer<String>() {

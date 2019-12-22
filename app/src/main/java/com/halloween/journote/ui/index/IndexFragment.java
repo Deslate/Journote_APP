@@ -1,5 +1,6 @@
 package com.halloween.journote.ui.index;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.service.autofill.UserData;
@@ -8,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
@@ -42,7 +44,7 @@ public class IndexFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         indexViewModel = ViewModelProviders.of(this).get(IndexViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_index, container, false);
+        final View root = inflater.inflate(R.layout.fragment_index, container, false);
         setCustomActionBar();
         setHasOptionsMenu(true);
 
@@ -63,6 +65,26 @@ public class IndexFragment extends Fragment {
                 },2000);
             }
         });
+
+        adapter.setOnItemClickListener(new ItemListAdapter.OnItemClickListener() {
+            @Override
+            public void onClick(int position) {
+                Item item=items.get(position);
+                Intent intent=new Intent("com.halloween.journote.ACTION_START");
+                intent.addCategory("com.halloween.journote.EDIT_ACTIVITY");
+                intent.putExtra("Day", item.getContentPath());
+                startActivity(intent);
+            }
+        });
+
+
+        adapter.setOnItemLongClickListener(new ItemListAdapter.OnItemLongClickListener() {
+            @Override
+            public void onClick(int position) {
+                Toast.makeText(root.getContext(), "long click " + position, Toast.LENGTH_SHORT).show();
+            }
+        });
+
         RecyclerView recyclerView = (RecyclerView) root.findViewById(R.id.index_recycler_view);
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);

@@ -10,6 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.PopupWindow;
 import android.widget.SeekBar;
@@ -25,18 +27,13 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     private View mContainer;
     private EditText editTitle;
     private EditText editContent;
-    private TextView mKeyboardTopViewFirstTxt;
-    private TextView mKeyboardTopViewSecondTxt;
-    private TextView mKeyboardTopViewThirdTxt;
-    private TextView mKeyboardTopViewFourthTxt;
-    private View mKeyboardTopViewTipContainer;
-    private boolean mInputViewIsNull = true;
 
-    private SeekBar mKeyboardTopViewSeekBar;
-    private ValueAnimator mExtendSeekBarAnimator;
-    private ValueAnimator mShrinkSeekBarAnimator;
-    private boolean mIsCanMoveCursor = false;
-    private int mLastSeekBarProgress = 25;
+
+    private View mKeyboardTopViewTipContainer;
+    private Button commitBtn;
+    private Button imgInsertBtn;
+    private Button fontMenuBtn;
+    private Button undoBtn;
 
     private PopupWindow mSoftKeyboardTopPopupWindow;
     private boolean mIsSoftKeyBoardShowing = false;
@@ -53,80 +50,42 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
 
         this.getWindow().getDecorView().setSystemUiVisibility( View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
 
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-
-
-
         mContainer = findViewById(R.id.container);
         editTitle = (EditText) findViewById(R.id.edit_title);
         editContent = (EditText) findViewById(R.id.edit_content);
-        //mEditText.addTextChangedListener(this);
 
         //设置软键盘收放监听事件
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new KeyboardOnGlobalChangeListener());
-
 
         //设置EditText控制
         new EditTextController(this,editContent);
 
     }
 
-    /*@Override
-    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
-    }
-
-    @Override
-    public void onTextChanged(CharSequence s, int start, int before, int count) {
-        //Toast.makeText(this,"您输入的数据为："+s.toString(),Toast.LENGTH_SHORT).show();
-        //System.out.println("您输入的数据为："+s.toString());
-
-    }
-
-    @Override
-    public void afterTextChanged(Editable s) {
-        //String text = s.toString();
-    }
-
-     */
     @Override
     public void onClick(View v) {
         String txt = "";
         switch (v.getId()) {
-            case R.id.keyboard_top_view_first_txt:
-                txt = mKeyboardTopViewFirstTxt.getText().toString();
+            case R.id.undo_btn:
                 break;
-            case R.id.keyboard_top_view_second_txt:
-                txt = mKeyboardTopViewSecondTxt.getText().toString();
+            case R.id.img_insert_btn:
                 break;
-            case R.id.keyboard_top_view_third_txt:
-                txt = mKeyboardTopViewThirdTxt.getText().toString();
+            case R.id.font_menu_btn:
                 break;
-            case R.id.keyboard_top_view_fourth_txt:
-                txt = mKeyboardTopViewFourthTxt.getText().toString();
+            case R.id.commit_btn:
+                // 隐藏软键盘
+                InputMethodManager imm = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(this.getWindow().getDecorView().getWindowToken(), 0);
                 break;
-
         }
-        EditTextController.insert(txt);
-        //System.out.println("您输入的数据为："+txt);
-    }
-    private int getScreenHeight() {
-        return  ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
-                .getDefaultDisplay().getHeight();
-    }
-
-    private int getScreenWidth() {
-        return ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
-                .getDefaultDisplay().getWidth();
     }
 
 
-    //自定义类来实现ViewTreeObserver.OnGlobalLayoutListener接口
+
+    //自定义类来实现 ViewTreeObserver.OnGlobalLayoutListener 接口 ⌨️
+
     private class KeyboardOnGlobalChangeListener implements ViewTreeObserver.OnGlobalLayoutListener {
-
-
-
         @Override
         public void onGlobalLayout() {
             Rect rect = new Rect();
@@ -143,8 +102,6 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                 editContent.setCursorVisible(true);
                 showKeyboardTopPopupWindow(getScreenWidth() / 2, keyboardHeight+getNavigationBarHeight(EditActivity.this));//显示popup工具栏
                 getSupportActionBar().hide();
-
-
             } else {
 
                 //进入浏览模式
@@ -159,9 +116,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-
-
-
+    //初始化 🔧 popup 工具栏
     private void showKeyboardTopPopupWindow(int x, int y) {
         System.out.println("private void showKeyboardTopPopupWindow(int x, int y)");
         if (mSoftKeyboardTopPopupWindow != null && mSoftKeyboardTopPopupWindow.isShowing()) {
@@ -172,20 +127,19 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         View popupView = getLayoutInflater().inflate(R.layout.tool_bar, null);
         System.out.println("View popupView = getLayoutInflater().inflate(R.layout.tool_bar, null);");
 
-        mKeyboardTopViewFirstTxt = (TextView) popupView.findViewById(R.id.keyboard_top_view_first_txt);
-        mKeyboardTopViewSecondTxt = (TextView) popupView.findViewById(R.id.keyboard_top_view_second_txt);
-        mKeyboardTopViewThirdTxt = (TextView) popupView.findViewById(R.id.keyboard_top_view_third_txt);
-        mKeyboardTopViewFourthTxt = (TextView) popupView.findViewById(R.id.keyboard_top_view_fourth_txt);
-        mKeyboardTopViewSeekBar = (SeekBar) popupView.findViewById(R.id.keyboard_top_view_seek_bar);
+        undoBtn = (Button) popupView.findViewById(R.id.undo_btn);
+        imgInsertBtn = (Button) popupView.findViewById(R.id.img_insert_btn);
+        fontMenuBtn = (Button) popupView.findViewById(R.id.font_menu_btn);
+        commitBtn = (Button) popupView.findViewById(R.id.commit_btn);
+
         mKeyboardTopViewTipContainer = popupView.findViewById(R.id.keyboard_top_view_tip_container);
 
         System.out.println("findViewById");
 
-        mKeyboardTopViewFirstTxt.setOnClickListener(this);
-        mKeyboardTopViewSecondTxt.setOnClickListener(this);
-        mKeyboardTopViewThirdTxt.setOnClickListener(this);
-        mKeyboardTopViewFourthTxt.setOnClickListener(this);
-        //mKeyboardTopViewSeekBar.setOnSeekBarChangeListener(this);
+        undoBtn.setOnClickListener(this);
+        imgInsertBtn.setOnClickListener(this);
+        fontMenuBtn.setOnClickListener(this);
+        commitBtn.setOnClickListener(this);
 
         System.out.println("setOnClickListener");
 
@@ -198,8 +152,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         System.out.println(""+mSoftKeyboardTopPopupWindow+mContainer);
         mSoftKeyboardTopPopupWindow.showAtLocation(mContainer, Gravity.BOTTOM, x, y);//显示popup,注意虚拟键的处理
         System.out.println("mSoftKeyboardTopPopupWindow = new PopupWindow");
-        updateKeyboardTopViewTips(TextUtils.isEmpty(editTitle.getText()));
     }
+
     private void updateKeyboardTopPopupWindow(int x, int y) {
         if (mSoftKeyboardTopPopupWindow != null && mSoftKeyboardTopPopupWindow.isShowing()) {
             mSoftKeyboardTopPopupWindow.update(x, y, mSoftKeyboardTopPopupWindow.getWidth(), mSoftKeyboardTopPopupWindow.getHeight());
@@ -209,49 +163,13 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         if (mSoftKeyboardTopPopupWindow != null && mSoftKeyboardTopPopupWindow.isShowing()) {
             mSoftKeyboardTopPopupWindow.dismiss();
             mSoftKeyboardTopPopupWindow = null;
-            mKeyboardTopViewFirstTxt = null;
-            mKeyboardTopViewSecondTxt = null;
-            mKeyboardTopViewThirdTxt = null;
-            mKeyboardTopViewFourthTxt = null;
-            mKeyboardTopViewSeekBar = null;
-            mInputViewIsNull = true;
+            undoBtn = null;
+            imgInsertBtn = null;
+            fontMenuBtn = null;
+            commitBtn = null;
         }
     }
-    private void updateKeyboardTopViewTips(boolean isNull) {
-        if (mInputViewIsNull == isNull) {
-            return;
-        }
 
-        if (isNull) {
-            if (mKeyboardTopViewFirstTxt != null) {
-                mKeyboardTopViewFirstTxt.setText("emm");
-            }
-            if (mKeyboardTopViewSecondTxt != null) {
-                mKeyboardTopViewSecondTxt.setText("emm");
-            }
-            if (mKeyboardTopViewThirdTxt != null) {
-                mKeyboardTopViewThirdTxt.setText("emm");
-            }
-            if (mKeyboardTopViewFourthTxt != null) {
-                mKeyboardTopViewFourthTxt.setText("emm");
-            }
-            mInputViewIsNull = true;
-        } else {
-            if (mKeyboardTopViewFirstTxt != null) {
-                mKeyboardTopViewFirstTxt.setText("emm");
-            }
-            if (mKeyboardTopViewSecondTxt != null) {
-                mKeyboardTopViewSecondTxt.setText("emm");
-            }
-            if (mKeyboardTopViewThirdTxt != null) {
-                mKeyboardTopViewThirdTxt.setText("emm");
-            }
-            if (mKeyboardTopViewFourthTxt != null) {
-                mKeyboardTopViewFourthTxt.setText("emm");
-            }
-            mInputViewIsNull = false;
-        }
-    }
     public static int getNavigationBarHeight(Context context){
         int result = 0;
         int resourceId = context.getResources().getIdentifier("navigation_bar_height","dimen", "android");
@@ -259,6 +177,15 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             result = context.getResources().getDimensionPixelSize(resourceId);
         }
         return result;
+    }
+    private int getScreenHeight() {
+        return  ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay().getHeight();
+    }
+
+    private int getScreenWidth() {
+        return ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay().getWidth();
     }
 
 

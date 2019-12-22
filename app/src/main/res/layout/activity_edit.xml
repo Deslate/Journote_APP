@@ -46,12 +46,9 @@
                 android:layout_gravity="top"
                 android:background="@null"
                 android:ems="10"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
                 android:hint="Hello Hello Hello and Merry Christmas World!"
                 android:inputType="textMultiLine"
                 android:lineSpacingMultiplier="1.5"
-                android:textIsSelectable="true"
                 android:textSize="15dp"
                 android:translationX="4dp" />
 

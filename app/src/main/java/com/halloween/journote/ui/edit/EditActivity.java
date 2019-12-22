@@ -139,8 +139,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                 mIsSoftKeyBoardShowing = true; // 超过屏幕五分之一则表示弹出了输入法
 
                 //进入编辑模式
-                editContent.setEnabled(true);
-                editTitle.setEnabled(true);
+                editTitle.setCursorVisible(true);
+                editContent.setCursorVisible(true);
                 showKeyboardTopPopupWindow(getScreenWidth() / 2, keyboardHeight+getNavigationBarHeight(EditActivity.this));//显示popup工具栏
                 getSupportActionBar().hide();
 
@@ -148,8 +148,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             } else {
 
                 //进入浏览模式
-                //editTitle.setCursorVisible(false);
-                //editTitle.setCursorVisible(false);
+                editTitle.setCursorVisible(false);
+                editContent.setCursorVisible(false);
                 getSupportActionBar().show();
                 if (preShowing) {
                     closePopupWindow();//隐藏popup工具栏

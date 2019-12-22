@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.halloween.journote.R;
 
+import static android.graphics.Color.BLACK;
 import static com.halloween.journote.MainActivity.actionBar;
 import static com.halloween.journote.MainActivity.decor;
 
@@ -25,15 +26,19 @@ public class AllFragment extends Fragment {
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
+        System.out.println("all");
         allViewModel =
                 ViewModelProviders.of(this).get(AllViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_more, container, false);
+        View root = inflater.inflate(R.layout.fragment_all, container, false);
         setCustomActionBar();
-        final TextView textView = root.findViewById(R.id.text_notifications);
+        final TextView textView = root.findViewById(R.id.text_all);
         allViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
-                textView.setText(s);
+                System.out.println("setText"+s);
+                System.out.println(""+textView);
+                textView.setTextColor(BLACK);
+                textView.setText("emmm");
             }
         });
         return root;
@@ -47,6 +52,6 @@ public class AllFragment extends Fragment {
         actionBar.setDisplayShowHomeEnabled(false);
         actionBar.setDisplayShowTitleEnabled(false);
 
-        decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
     }
 }

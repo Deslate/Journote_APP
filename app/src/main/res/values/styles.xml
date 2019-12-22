@@ -8,6 +8,8 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:textSize">@dimen/text_size</item>
         <item name="android:keyTextSize">@dimen/key_text_size</item>
+        <item name="android:actionBarSize">@dimen/action_bar_size</item>
+
         </style>
 
 

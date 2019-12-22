@@ -1,11 +1,13 @@
 package com.halloween.journote;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.halloween.journote.model.Item;
 import com.halloween.journote.model.ItemAddition;
+import com.halloween.journote.ui.index.ItemListAdapter;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,17 +29,18 @@ public class MainActivity extends AppCompatActivity {
     public static ActionBar actionBar;
     public static View decor;
     public static List<Item> items = new ArrayList<>();
-    public static LinearLayoutManager layoutManager;
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         BottomNavigationView navView = findViewById(R.id.nav_view);
 
+
         //new ItemAddition(SAD);
-        layoutManager = new LinearLayoutManager(this);
 
         items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com"));
         items.add(new Item("想法","Journote/item2019122201231670",new Date(),"deslate@outlook.com"));

@@ -29,7 +29,7 @@ public class MoreFragment extends Fragment {
                 ViewModelProviders.of(this).get(MoreViewModel.class);
         View root = inflater.inflate(R.layout.fragment_more, container, false);
         setCustomActionBar();
-        final TextView textView = root.findViewById(R.id.text_notifications);
+        final TextView textView = root.findViewById(R.id.text_more);
         moreViewModel.getText().observe(this, new Observer<String>() {
             @Override
             public void onChanged(@Nullable String s) {
@@ -47,6 +47,6 @@ public class MoreFragment extends Fragment {
         actionBar.setDisplayShowHomeEnabled(false);
         actionBar.setDisplayShowTitleEnabled(false);
 
-        decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
     }
 }

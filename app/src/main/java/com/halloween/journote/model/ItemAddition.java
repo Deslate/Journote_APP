@@ -1,5 +1,7 @@
 package com.halloween.journote.model;
 
+import com.halloween.journote.MainActivity;
+
 public class ItemAddition {
     private ItemAddition itemAddition;
 
@@ -30,16 +32,39 @@ public class ItemAddition {
     public AdditionType getType(){
         return type;
     }
+
+    public ItemAddition(String str){
+        String contentStr = str.substring(str.indexOf(":"+1));
+        switch (contentStr){
+            case "HAPPY":
+                this.mood = Mood.HAPPY;this.type = AdditionType.MOOD;return;
+            case "PEACE":
+                this.mood = Mood.PEACE;this.type = AdditionType.MOOD;return;
+            case "SAD":
+                this.mood = Mood.SAD;this.type = AdditionType.MOOD;return;
+            case "SUNNY":
+                this.weather = Weather.SUNNY;this.type = AdditionType.WEATHER;return;
+            case "CLOUDY":
+                this.weather = Weather.CLOUDY;this.type = AdditionType.WEATHER;return;
+            case "RAINY":
+                this.weather = Weather.RAINY;this.type = AdditionType.WEATHER;return;
+            case "FAVOUR":
+                this.favour = Favour.FAVOUR;this.type = AdditionType.FAVOUR;return;
+            case "UNFAVOUR":
+                this.favour = Favour.NON_FALOUR;this.type = AdditionType.FAVOUR;return;
+        }
+    }
+
     @Override
     public String toString(){
         String value;
         switch(type){
             case MOOD:
-                return type+": "+mood;
+                return type+":"+mood;
             case WEATHER:
-                return type+": "+weather;
+                return type+":"+weather;
             case FAVOUR:
-                return type+": "+favour;
+                return type+":"+favour;
             default:
                 return "error";
         }

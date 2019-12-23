@@ -117,7 +117,7 @@ public class IndexFragment extends Fragment {
         //View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |会导致UI位置错乱
     }
     public void refresh(){
-        items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com"));
+        //items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",));
         System.out.println("refresh" );
     }
 

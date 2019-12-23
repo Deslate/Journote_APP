@@ -2,16 +2,11 @@ package com.halloween.journote.ui.edit;
 
 import android.content.Context;
 import android.text.Editable;
-import android.text.InputFilter;
 import android.text.SpannableString;
-import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +15,6 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
 
     private Context context;
     private static EditText editText;
-
-    public int selectionStart;
 
 
     public EditTextController (Context context , EditText editText){
@@ -95,7 +88,11 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
     private Editable convertKeyword(Editable editable,List<keyword> keywords){return editable;};
 
     //TODO 核心类：关键字
-    private class keyword{}
+    private class keyword{
+        private int indexStart;
+        private int indexEnd;
+        private String originalText;
+    }
 
     //TODO 私有方法：将 Spannable String 插入至 Editable
     public void insert(SpannableString insertSpannable) {//insertString：将要插入的Spannable

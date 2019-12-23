@@ -5,4 +5,7 @@
     <string name="title_all">全部</string>
     <string name="title_more">更多</string>
     <string name="no_record">当前还没有任何笔记哦</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+
 </resources>

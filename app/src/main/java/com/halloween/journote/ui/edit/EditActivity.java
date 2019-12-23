@@ -1,11 +1,14 @@
 package com.halloween.journote.ui.edit;
 
 import android.animation.ValueAnimator;
+import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -13,13 +16,19 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.PopupMenu;
 import android.widget.PopupWindow;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.halloween.journote.R;
+
+import static com.halloween.journote.MainActivity.actionBar;
+import static com.halloween.journote.MainActivity.decor;
 
 public class EditActivity extends AppCompatActivity implements View.OnClickListener{
 
@@ -34,6 +43,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     private Button imgInsertBtn;
     private Button fontMenuBtn;
     private Button undoBtn;
+    private Button backBtn;
+    private Button mainMenuBtn;
 
     private PopupWindow mSoftKeyboardTopPopupWindow;
     private boolean mIsSoftKeyBoardShowing = false;
@@ -49,10 +60,12 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_edit);
 
         this.getWindow().getDecorView().setSystemUiVisibility( View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        setCustomActionBar();
 
         mContainer = findViewById(R.id.container);
         editTitle = (EditText) findViewById(R.id.edit_title);
         editContent = (EditText) findViewById(R.id.edit_content);
+        backBtn = (Button) findViewById(R.id.back_btn);
 
         //设置软键盘收放监听事件
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new KeyboardOnGlobalChangeListener());
@@ -60,6 +73,66 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         //设置EditText控制
         new EditTextController(this,editContent);
 
+        backBtn.setOnClickListener(this);
+
+    }
+
+    //TODO 设置自定义 Actionbar layout
+    private void setCustomActionBar(){
+        ActionBar.LayoutParams layoutParams =new ActionBar.LayoutParams(ActionBar.LayoutParams.MATCH_PARENT, ActionBar.LayoutParams.MATCH_PARENT, Gravity.CENTER);
+        View previewActionBar = LayoutInflater.from(this).inflate(R.layout.actionbar_edit, null);
+        getSupportActionBar().setCustomView(previewActionBar, layoutParams);
+        getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+        getSupportActionBar().setDisplayShowCustomEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(false);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        //TODO 设置状态栏
+        decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        //TODO 初始化 Actionbar 内部控件
+
+        mainMenuBtn = findViewById(R.id.menu_btn);
+        mainMenuBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showPopupMenu(view);
+            }
+        });
+    }
+
+    private void showPopupMenu(View view){
+        PopupMenu popupMenu = new PopupMenu(this,view);
+        popupMenu.inflate(R.menu.edit_actbar_main_menu);
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                switch (menuItem.getItemId()){
+                    //TODO 删除按钮 显示删除确认弹窗
+                    case R.id.action_1:
+                        DeleteConfirm deleteConfirm = new DeleteConfirm(EditActivity.this, R.style.dialog, "确认删除？", new DeleteConfirm.OnCloseListener() {
+                            @Override
+                            public void onClick(Dialog dialog, boolean confirm) {
+                                dialog.dismiss();
+                                performDelete();
+                                Toast.makeText(EditActivity.this,"已将此项删除",Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        deleteConfirm.setTitle("提示").show();
+                        Toast.makeText(EditActivity.this,"Option 1",Toast.LENGTH_SHORT).show();
+                        return true;
+                    case R.id.action_2:
+                        Toast.makeText(EditActivity.this,"Option 2",Toast.LENGTH_SHORT).show();
+                        return true;
+                    case R.id.action_3:
+                        Toast.makeText(EditActivity.this,"Option 3",Toast.LENGTH_SHORT).show();
+                        return true;
+                    default:
+                        //do nothing
+                }
+
+                return false;
+            }
+        });
+        popupMenu.show();
     }
 
 
@@ -77,6 +150,9 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                 // 隐藏软键盘
                 InputMethodManager imm = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(this.getWindow().getDecorView().getWindowToken(), 0);
+                break;
+            case R.id.back_btn:
+                performQuit();
                 break;
         }
     }
@@ -108,6 +184,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                 editTitle.setCursorVisible(false);
                 editContent.setCursorVisible(false);
                 getSupportActionBar().show();
+                //setCustomActionBar();
                 if (preShowing) {
                     closePopupWindow();//隐藏popup工具栏
                 }
@@ -188,5 +265,12 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                 .getDefaultDisplay().getWidth();
     }
 
+    private void performDelete(){
+
+    }
+    private void performQuit(){
+
+        finish();
+    }
 
 }

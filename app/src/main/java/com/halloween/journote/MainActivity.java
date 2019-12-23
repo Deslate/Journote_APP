@@ -23,6 +23,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.halloween.journote.model.DatabaseManager;
 import com.halloween.journote.model.DatabaseOpenHelper;
 import com.halloween.journote.model.Item;
 import com.halloween.journote.model.ItemAddition;
@@ -41,11 +42,14 @@ import androidx.navigation.ui.NavigationUI;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.halloween.journote.model.ItemAddition.Mood.SAD;
 
@@ -58,15 +62,30 @@ public class MainActivity extends AppCompatActivity {
     //
 
     public void test(){
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 2;
-        Bitmap originalBitmap= BitmapFactory.decodeFile("/storage/emulated/0/DCIM/Camera/IMG_20191223_115457.jpg",options);
-        if(originalBitmap == null){
-            Toast.makeText(this,"shit ", Toast.LENGTH_LONG).show();
-        }else{
-            Toast.makeText(this,"success!", Toast.LENGTH_LONG).show();
+        String REGEX = "(?<!!)\\[[^\\[]*\\]\\([^\\[]*\\)";
+        String INPUT = "dog image: ![dog image](img192230.jpg) and as for cat: ![cat image](img123230.jpg)\n" +
+                "you can use [Link for \"[……](……)\"](img633619.jpg)\n" +
+                "link: [baidu](https://www.baidu.com)\n" +
+                "---\n" +
+                "1---\n" +
+                "\n" +
+                "---\n" +
+                "------[^.]#.+\n" +
+                "--\n" +
+                "#hahaha\n" +
+                "dbwble1ee21#fbjkfeq\n" +
+                "dnwlqn3k1#\n" +
+                "\n" +
+                "#dbke2#########hdsalw\n" +
+                "####cbldqsf";
+        Pattern p = Pattern.compile(REGEX);
+        Matcher m = p.matcher(INPUT); // 获取 matcher 对象
+        int count = 0;
+        while(m.find()) {
+            count++;
+            Toast.makeText(this,m.group(),Toast.LENGTH_LONG).show();
         }
-        //Toast.makeText(this,originalBitmap.toString(), Toast.LENGTH_LONG).show();
+
     }
 
     @Override
@@ -109,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
 
         //new ItemAddition(SAD);
 
-        items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
+        items.add(new Item("今日随笔","Journote/item2019212201231670",new Date(),"deslate@outlook.com",this));
         items.add(new Item("想法","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
         items.add(new Item("无标题","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
         items.add(new Item("测试","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));

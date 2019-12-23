@@ -22,6 +22,7 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.PopupWindow;
@@ -33,12 +34,18 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.halloween.journote.R;
+import com.halloween.journote.model.DatabaseManager;
+import com.halloween.journote.model.DatabaseOpenHelper;
+import com.halloween.journote.model.Item;
 
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.Time;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static com.halloween.journote.MainActivity.actionBar;
 import static com.halloween.journote.MainActivity.decor;
@@ -71,6 +78,10 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
 
     private int keyboardHeight;
 
+    private Item item;
+
+    private DatabaseManager database;
+
 
 
     @Override
@@ -86,12 +97,20 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         editContent = (EditText) findViewById(R.id.edit_content);
         backBtn = (Button) findViewById(R.id.back_btn);
 
+        //初始化数据库控制器
+        database = new DatabaseManager(this);
+
+        //初始化Item对象
+        String contentPath = performInit();
+
+        //设置EditText跟踪
+        editTextController = new EditTextController(this,editContent,contentPath);
+
         //设置软键盘收放监听事件
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new KeyboardOnGlobalChangeListener());
 
-        //设置EditText控制
-        editTextController = new EditTextController(this,editContent);
 
+        //设置菜单栏（ActionBar）控件监听
         backBtn.setOnClickListener(this);
 
     }
@@ -108,7 +127,6 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         //TODO 设置状态栏
         decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         //TODO 初始化 Actionbar 内部控件
-
         mainMenuBtn = findViewById(R.id.menu_btn);
         mainMenuBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -169,7 +187,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.font_menu_btn:
                 break;
             case R.id.commit_btn:
-                // 隐藏软键盘
+                // 点击commit，【26】【+】
                 InputMethodManager imm = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(this.getWindow().getDecorView().getWindowToken(), 0);
                 break;
@@ -363,11 +381,20 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void performDelete(){
-
+        database.deleteItem(item);
+        item = null;
     }
     private void performQuit(){
-
+        database.updateItem(item);
         finish();
+    }
+    //TODO 初始化Item对象
+    private String performInit(){
+        String contentPath = new DatabaseManager(this).getNewContentPathId()+".journote";
+        //String contentPath = "haha";
+        item = new Item("Untitled",contentPath,new Date(),"Default",this);
+        database.addItem(item);
+        return contentPath;
     }
 
 }

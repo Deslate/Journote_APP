@@ -1,6 +1,5 @@
 package com.halloween.journote.model;
 
-import android.widget.Button;
 
 public class Label {
     private String labelName;

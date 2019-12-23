@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.widget.Toast;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -19,7 +20,8 @@ public class DatabaseManager {
     private SQLiteDatabase database;
     Item tempItem;
     //TODO 构造方法只需要传入 Context
-    DatabaseManager(Context context){
+    public DatabaseManager(Context context){
+        this.context = context;
         databaseOpenHelper=new DatabaseOpenHelper(context);
         database = databaseOpenHelper.getWritableDatabase();
         tempItem = new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",getCurrentRecordCount()+1);
@@ -39,6 +41,7 @@ public class DatabaseManager {
         database.insert("Item", null, values);
         values.clear();
         addRecord(newItem.getHistory().getInitRecord());
+        Toast.makeText(context,"added"+contentPath,Toast.LENGTH_LONG).show();
     }
 
     //TODO 删除某个 Item 并记录 Record
@@ -141,6 +144,28 @@ public class DatabaseManager {
 
     }
 
+    //TODO 获取最新的可用路径名ID
+    public String getNewContentPathId() {
+        Date date = new Date();
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+        int numberInSec = 1;
+        String contentPathId = format.format(date);
+        Boolean notEnd = true;
+        while (notEnd) {
+            notEnd = false;
+            Cursor cursor = database.query("Item", null, "contentPath=?", new String[]{contentPathId + numberInSec}, null, null, null);
+            if (cursor.moveToFirst()) {
+                do {
+                    notEnd = true;
+                    numberInSec += 1;
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+
+        return contentPathId+numberInSec;
+    }
+
     private void addRecord(Record record){
         long recordNumber = record.getRecordNumber();
         String editDate = record.getEditDate().toString();
@@ -166,15 +191,21 @@ public class DatabaseManager {
         return cursorList;
     }
 
-    private List<Cursor> searchRecordWithContentPath(String contentPath){
-        List<Cursor> cursorList = new ArrayList<Cursor>();
+    private List<ItemString> searchRecordWithContentPath(String contentPath){
+        List<ItemString> itemStringList = new ArrayList<ItemString>();
         Cursor cursor=database.query("Record",null, "contentPath=?", new String[]{contentPath}, null, null, null);
         if(cursor.moveToFirst()){
             do{
-                cursorList.add(cursor);
+                new ItemString();
+
+                cursor.close();
             }while(cursor.moveToNext());
         }
-        return cursorList;
+        return itemStringList;
+    }
+
+    private class ItemString{
+
     }
 
 }

@@ -8,6 +8,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.os.AsyncTask;
+import android.os.Environment;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -20,21 +22,36 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class EditTextController implements TextWatcher, View.OnFocusChangeListener {
 
     private Context context;
     private static EditText editText;
     private static Editable editable;
+    private String contentPath;
+
+    private enum KeywordType{IMAGE,SEPARATOR,TITLE}
 
 
-    public EditTextController (Context context , EditText editText){
-        System.out.println("set EditTextController");
-        //Toast.makeText(context,"set EditTextController",Toast.LENGTH_LONG);
+    public EditTextController (Context context , EditText editText,String contentPath){
         this.context = context;
         this.editText = editText;
+        this.contentPath = contentPath;
         editText.addTextChangedListener(this);
         editText.setOnFocusChangeListener(this);
         editable = editText.getEditableText();//获取EditText的文字
@@ -70,7 +87,7 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
                 paint.setColor(Color.WHITE);
                 paint.setFlags(100);
                 paint.setStyle(Paint.Style.FILL); //��������������������
-                canvas.drawText("ͼƬ��ʧ",100,175,paint);
+                canvas.drawText("图片丢失",100,175,paint);
 
             }
             int w = originalBitmap.getWidth();
@@ -129,9 +146,12 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
     }
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
+        System.out.println("onTextChange");
+        saveAll();
         if(before==0&&count>=1){
             //添加内容的情况
             getInserted(s,start,count);
+
         }else if(before>=1&&count==0){
             //删除部分内容的情况
         }else if(before>=1&&count>=1){
@@ -162,16 +182,63 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
     //TODO 核心：将指定内容进行关键字转换
 
     //TODO 核心：扫描指定内容中的关键字
-    private List<keyword> scanKeyword(Editable editable){return new ArrayList<keyword>();}
+    private List<Keyword> scanKeyword(Editable editable){
+
+        List<Keyword> keywordList = new ArrayList<Keyword>();
+        Pattern pattern;
+        Matcher matcher;
+
+        //TODO 使用正则表达式检索关键字组 ![……](……)
+        //正则表达式： "
+        String ImageRegularExpression = "!\\[[^!\\[]*\\]\\([^!\\[]*\\)";
+        //注意： ![image for "![……](……)"](img633619.jpg)  将返回   ![……](……)"](img633619.jpg)
+        pattern = Pattern.compile(ImageRegularExpression);
+        matcher = pattern.matcher(editable); // 获取 matcher 对象
+        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.IMAGE)); }
+
+        //TODO 使用正则表达式检索关键字组 [……](……)
+        //正则表达式： "
+        String LinkRegularExpression = "(?<!!)\\[[^\\[]*\\]\\([^\\[]*\\)";
+        pattern = Pattern.compile(ImageRegularExpression);
+        matcher = pattern.matcher(editable); // 获取 matcher 对象
+        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.IMAGE)); }
+
+        //TODO 使用正则表达式检索关键字组 ---
+        String separatorRegularExpression = "\\n----*\\n";
+        //注意： ![image for "![……](……)"](img633619.jpg)  将返回   ![……](……)"](img633619.jpg)
+        pattern = Pattern.compile(ImageRegularExpression);
+        matcher = pattern.matcher(editable); // 获取 matcher 对象
+        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.SEPARATOR)); }
+
+        //TODO 使用正则表达式检索关键字组 #
+        String titleOneRegularExpression = "\\n{1,6}.+";
+        //注意： ![image for "![……](……)"](img633619.jpg)  将返回   ![……](……)"](img633619.jpg)
+        pattern = Pattern.compile(ImageRegularExpression);
+        matcher = pattern.matcher(editable); // 获取 matcher 对象
+        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.TITLE)); }
+
+        return keywordList;
+    }
 
     //TODO 核心：替换指定关键字为Spannable
-    private Editable convertKeyword(Editable editable,List<keyword> keywords){return editable;};
+    private Editable convertKeyword(Editable editable,List<Keyword> keywords){return editable;};
 
     //TODO 核心类：关键字
-    private class keyword{
+    private class Keyword{
         private int indexStart;
         private int indexEnd;
         private String originalText;
+        private KeywordType keywordType;
+        public Keyword(int indexStart,int indexEnd,String originalText,KeywordType keywordType){
+            this.indexStart = indexStart;
+            this.indexEnd = indexEnd;
+            this.originalText = originalText;
+            this.keywordType = keywordType;
+        }
+        public int getIndexStart() { return indexStart; }
+        public int getIndexEnd() { return indexEnd; }
+        public String getOriginalText() { return originalText; }
+        public KeywordType getKeywordType() { return keywordType; }
     }
 
     //TODO 私有方法：将 Spannable String 插入至 Editable
@@ -216,6 +283,72 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
         @Override
         public void onClick(View widget) {
             // TODO 设置点击事件
+        }
+
+    }
+
+    //TODO SaveAll-全部保存
+    public void saveAll(){
+        System.out.println("saveAll: new SaveTask");
+        new SaveTask(editable,contentPath).execute();
+    }
+
+    //TODO 开启线程存储内容
+    class SaveTask extends AsyncTask<Void,Integer,Boolean> {
+        private String saveContentPath;
+        private Editable saveEditable;
+        public SaveTask(Editable saveEditable,String saveContentPath){
+            this.saveContentPath = contentPath;
+            this.saveEditable = editable;
+        }
+
+        @Override
+        protected void onPreExecute(){
+            System.out.println("SaveTask: onPreExecute");
+            //downloadStatus.setText("开始下载 ...");
+            //progress.setProgress(0);
+        }
+        @Override
+        protected Boolean doInBackground(Void... params){
+
+            System.out.println("save in background" );
+
+            File JournoteFolder =new File(Environment.getExternalStorageDirectory(),"Journote");
+            while(!JournoteFolder.exists()){ JournoteFolder.mkdir(); }
+            File Journote_NoteFolder =new File(JournoteFolder,"Notes");
+            while(!Journote_NoteFolder.exists()){ Journote_NoteFolder.mkdir(); }
+
+            String allData = editable.toString();
+
+            FileOutputStream out = null;
+            BufferedWriter writer = null;
+            try{
+                out = new FileOutputStream(Journote_NoteFolder+"/data.journote");
+                writer = new BufferedWriter(new OutputStreamWriter(out));
+                writer.write(allData);
+            }catch (IOException e){
+                e.printStackTrace();
+            }finally{
+                try{
+                    if(writer != null){
+                        writer.close();
+                    }
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("finish save "+allData);
+            return null;
+        }
+        @Override
+        protected void onProgressUpdate(Integer... values){
+            //downloadStatus.setText("下载进度："+values[0]+"%");
+            //progress.setProgress(values[0]) ;
+        }
+        @Override
+        protected void onPostExecute(Boolean result){
+            System.out.println("SaveTask: onPostExecute");
+            //Toast.makeText(MainActivity.this,"Pose Execute",Toast.LENGTH_SHORT).show();
         }
 
     }

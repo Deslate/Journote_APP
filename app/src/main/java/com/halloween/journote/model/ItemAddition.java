@@ -1,6 +1,5 @@
 package com.halloween.journote.model;
 
-import com.halloween.journote.MainActivity;
 
 public class ItemAddition {
     private ItemAddition itemAddition;

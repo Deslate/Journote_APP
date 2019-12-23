@@ -10,6 +10,8 @@ public class History {
         this.editRecords = editRecords;
     }
 
+    public void addRecord(Record record){editRecords.add(record); }
+
     public List<Record> getAllRecord (){
         return editRecords;
     }

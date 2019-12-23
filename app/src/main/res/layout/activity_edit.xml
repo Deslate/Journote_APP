@@ -48,7 +48,7 @@
                 android:ems="10"
                 android:hint="Hello Hello Hello and Merry Christmas World!"
                 android:inputType="textMultiLine"
-                android:lineSpacingMultiplier="1.5"
+                android:lineSpacingExtra="8sp"
                 android:textSize="15dp"
                 android:translationX="4dp" />
 

@@ -3,8 +3,15 @@ package com.halloween.journote.ui.edit;
 import android.animation.ValueAnimator;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -27,6 +34,12 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.halloween.journote.R;
 
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import static com.halloween.journote.MainActivity.actionBar;
 import static com.halloween.journote.MainActivity.decor;
 
@@ -36,6 +49,12 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     private View mContainer;
     private EditText editTitle;
     private EditText editContent;
+
+    private static final int IMAGE_CODE = 1;
+    private static final int TAKE_PHOTO = 2;
+    private static final int EDIT_PHOTO = 3;
+
+    private EditTextController editTextController;
 
 
     private View mKeyboardTopViewTipContainer;
@@ -71,7 +90,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new KeyboardOnGlobalChangeListener());
 
         //设置EditText控制
-        new EditTextController(this,editContent);
+        editTextController = new EditTextController(this,editContent);
 
         backBtn.setOnClickListener(this);
 
@@ -143,6 +162,9 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.undo_btn:
                 break;
             case R.id.img_insert_btn:
+                Intent getAlbum = new Intent(Intent.ACTION_PICK);//////////////////////////
+                getAlbum.setType("image/*");
+                startActivityForResult(getAlbum,IMAGE_CODE);
                 break;
             case R.id.font_menu_btn:
                 break;
@@ -245,6 +267,81 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             fontMenuBtn = null;
             commitBtn = null;
         }
+    }
+
+    //TODO onActivityResult 回调
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK) {
+            Toast.makeText(this,"emmm",Toast.LENGTH_LONG).show();
+            return;
+        }
+        if(requestCode == IMAGE_CODE){
+            try{
+                //Toast.makeText(this,"haha",Toast.LENGTH_LONG).show();
+                Uri originalUri = data.getData();
+                String[] proj = {MediaStore.Images.Media.DATA};
+                Cursor cursor = EditActivity.this.getContentResolver().query(originalUri,proj,null,null,null);
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                cursor.moveToFirst();
+                String path = cursor.getString(column_index);
+                editTextController.insertImage(path,path);
+            }catch (Exception e){
+                e.printStackTrace();
+                Toast.makeText(EditActivity.this,"对不起，插入图片失败",Toast.LENGTH_SHORT).show();
+            }
+        }else if(requestCode == TAKE_PHOTO){
+            if (resultCode==RESULT_OK){
+                /*try{
+                    Bitmap bitmap= BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
+                    // ���ﻹҪ�洢ͼƬ��Ϣ�����ݿ⣬����bitmap��processBitmapAndInsert�������룡����
+                    File Butler =new File(Environment.getExternalStorageDirectory(),"Butler");
+                    if(!Butler.exists()){
+                        Butler.mkdir();
+                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "����Butler��"+Environment.getExternalStorageDirectory(), Toast.LENGTH_SHORT).show();}
+                    }
+                    File Gallery=new File(Butler,"Gallery");
+                    if(!Gallery.exists()){
+                        Gallery.mkdir();
+                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "����Gallery��"+Butler, Toast.LENGTH_SHORT).show();}
+                    }
+                    java.util.Calendar now =java.util.Calendar.getInstance();
+                    int Pday=now.get(java.util.Calendar.DAY_OF_MONTH);
+                    int Pmonth=now.get(java.util.Calendar.MONTH)+1;
+                    int Pyear=now.get(java.util.Calendar.YEAR);
+                    int Phour=now.get(java.util.Calendar.HOUR_OF_DAY);
+                    int Pminute=now.get(java.util.Calendar.MINUTE);
+                    int Psecond=now.get(java.util.Calendar.SECOND);
+                    String User=com.des.butler.MainActivity.getUserName(ItemEdit.this,com.des.butler.MainActivity.userId);
+                    String fileName ="photo:"+User+"-"+Pyear+"-"+Pmonth+"-"+Pday+"-"+Phour+"-"+Pminute+"-"+Psecond+".jpg";
+                    if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, fileName, Toast.LENGTH_SHORT).show();}
+                    File file=new File(Gallery,fileName);
+                    try{
+                        FileOutputStream fos =new FileOutputStream(file);
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                        fos.flush();
+                        fos.close();
+                    }catch(FileNotFoundException e){
+                        e.printStackTrace();
+                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "�ļ�δ�����ɹ�", Toast.LENGTH_SHORT).show();}
+                    }catch(IOException e){
+                        e.printStackTrace();
+                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "IO����쳣", Toast.LENGTH_SHORT).show();}
+                    }
+                    String path = file.getPath();
+                    insertImg(path);
+
+                }catch(FileNotFoundException e){
+                    e.printStackTrace();
+
+                }
+
+                 */
+
+            }
+        }
+
     }
 
     public static int getNavigationBarHeight(Context context){

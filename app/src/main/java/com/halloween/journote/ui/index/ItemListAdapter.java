@@ -79,11 +79,12 @@ public class ItemListAdapter extends RecyclerView.Adapter<ItemListAdapter.ViewHo
         while(!Journote_NoteFolder.exists()){ Journote_NoteFolder.mkdir(); }
         File file = new File(Journote_NoteFolder+"/"+item.getContentPath());
         StringBuilder result = new StringBuilder();
-        String s = null;
+        String s;
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));//构造一个BufferedReader类来读取文件
             s = br.readLine();
         }catch (IOException e) {s = "暂且获取不到文件内容哦";}
+        if(null==s) s="空文件，写点什么吧！";
         int n= s.indexOf("\n");
         if(n>=0) s=s.substring(0,s.indexOf("\n"));
         if (s.length()>16) s=s.substring(0,16);

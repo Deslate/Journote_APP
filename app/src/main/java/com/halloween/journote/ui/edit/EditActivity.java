@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.Editable;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -39,6 +40,8 @@ import com.halloween.journote.model.DatabaseOpenHelper;
 import com.halloween.journote.model.Item;
 import com.halloween.journote.model.Record;
 
+
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -83,6 +86,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     private String contentPath = "";
 
     private DatabaseManager database;
+
+    private boolean newCreate;
 
 
 
@@ -163,13 +168,14 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                             }
                         });
                         deleteConfirm.setTitle("提示").show();
-                        Toast.makeText(EditActivity.this,"Option 1",Toast.LENGTH_SHORT).show();
+                        //Toast.makeText(EditActivity.this,"Option 1",Toast.LENGTH_SHORT).show();
                         return true;
                     case R.id.action_2:
-                        Toast.makeText(EditActivity.this,"Option 2",Toast.LENGTH_SHORT).show();
+                        //int System.Text.RegularExpressions.Regex.Matches(s, @"\w+").Count
                         return true;
                     case R.id.action_3:
-                        Toast.makeText(EditActivity.this,"Option 3",Toast.LENGTH_SHORT).show();
+                        DatabaseManager database = new DatabaseManager(EditActivity.this);
+                        Toast.makeText(EditActivity.this,"笔记总数："+database.getCurrentItemCount()+"\n修改记录总数："+database.getCurrentRecordCount(),Toast.LENGTH_SHORT).show();
                         return true;
                     default:
                         //do nothing
@@ -197,6 +203,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.commit_btn:
                 // 点击commit，【26】【+】
+                //TODO 文件存储：点击commit时、（退出编辑界面时）
+                save();
                 InputMethodManager imm = (InputMethodManager)this.getSystemService(Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(this.getWindow().getDecorView().getWindowToken(), 0);
                 break;
@@ -204,6 +212,11 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
                 performQuit();
                 break;
         }
+    }
+    @Override
+    protected void onDestroy(){
+        super.onDestroy();
+        save();
     }
 
 
@@ -352,22 +365,29 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     //TODO 退出前存储 Item 数据
     private void performQuit(){
         if(null!=item){
-            item.addRecord(new Record(new Date(),"default","read",contentPath,this));
-            item.setTitle(editTitle.getText().toString());
-            database.updateItem(item);
+            save();
             finish();
         }
 
+    }
+    //TODO 存储所有信息（根据创建状况判断）
+    private void save(){
+        editTextController.saveAll();
+        item.addRecord(new Record(new Date(),"default","read",contentPath,this));
+        item.setTitle(editTitle.getText().toString());
+        database.updateItem(item);
     }
     //TODO 初始化Item对象以及输入框内容
     private void performInit(){
         Intent intent=getIntent();
         contentPath =intent.getStringExtra("contentPath");
         if (contentPath.isEmpty()){
+            newCreate = true;
             contentPath = new DatabaseManager(this).getNewContentPathId()+".journote";
             item = new Item("Untitled",contentPath,new Date(),"Default",this);
             database.addItem(item);
         }else{
+            newCreate = false;
             item = database.getItem(contentPath);
             editTitle.setText(item.getTitle());
         }

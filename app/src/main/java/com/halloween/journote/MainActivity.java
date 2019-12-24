@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.WRITE_EXTERNAL_STORAGE,
                     Manifest.permission.CAMERA,
                     Manifest.permission.MOUNT_UNMOUNT_FILESYSTEMS,
-                    Manifest.permission.READ_EXTERNAL_STORAGE};
+                    Manifest.permission.READ_EXTERNAL_STORAGE,};
             //验证是否许可权限
             for (String str : permissions) {
                 if (this.checkSelfPermission(str) != PackageManager.PERMISSION_GRANTED) {
@@ -116,10 +116,10 @@ public class MainActivity extends AppCompatActivity {
         DatabaseOpenHelper databaseOpenHelper=new DatabaseOpenHelper(this);
         SQLiteDatabase database = databaseOpenHelper.getWritableDatabase();
 
-        Item example = new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this);
+        //Item example = new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this);
 
-        example.addItemAddition(new ItemAddition(SAD));
-        example.addLable(new Label("emm","emmmm"));
+        //example.addItemAddition(new ItemAddition(SAD));
+        //example.addLable(new Label("emm","emmmm"));
         DateFormat format1 = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy", java.util.Locale.US);
         String str ="SUN DEC 22 21:35:31 GMT+08:00 2019";
         Date date = new Date();

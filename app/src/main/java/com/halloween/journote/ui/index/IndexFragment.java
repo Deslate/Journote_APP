@@ -104,9 +104,18 @@ public class IndexFragment extends Fragment {
             }
         };
 
-        refresh();
+        //refresh();
 
         return root;
+    }
+
+    public void onStart(){
+        super.onStart();
+        refresh();
+    }
+    public  void  onResume(){
+        super.onResume();
+        refresh();
     }
 
     public void refresh(){
@@ -115,8 +124,10 @@ public class IndexFragment extends Fragment {
         adapter.setOnItemClickListener(listener);
         adapter.setOnItemLongClickListener(longListener);
         recyclerView.setAdapter(adapter);
-        System.out.println("-----------------------------------List refresh" );
+        System.out.println("---------------- List refresh --------------" );
     }
+
+
 
 
     private void setCustomActionBar(){

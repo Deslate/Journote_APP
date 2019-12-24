@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.SpannedString;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.style.ClickableSpan;
@@ -20,10 +21,15 @@ import android.text.style.ImageSpan;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
-import android.widget.Toast;
+import android.widget.ImageView;
+import android.widget.TextView;
+//import android.widget.Toast;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -31,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -49,6 +56,11 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
     private String contentPath;
 
     private enum KeywordType{IMAGE,SEPARATOR,TITLE,LINK}
+
+    static private String TEXT;
+
+    private int AsyncTaskStart;
+    private int AsyncTaskEnd;
 
 
     public EditTextController (Context context , EditText editText){
@@ -75,35 +87,54 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
             editable.append(insertString);//选择不存在或在文末
         } else {
             editable.replace(start, end, insertString);//光标所在位置插入文字
+            StringBuilder builder = new StringBuilder(TEXT);
+            builder.replace(start, end, insertString);
+
         }
+        System.out.println("TEXT:"+TEXT);
     }
+
 
     //TODO 公开方法：根据地址插入图片 -public
     public void insertImage(String text,String path){
         int start = editText.getSelectionStart();//获取光标位置
         int end = editText.getSelectionEnd();
-        insertImageWithStartAndEnd(text,path,start,end);//封装，以便替换关键字时调用
+        insertImageWithStartAndEndWithoutListening(text,path,start,end);//封装，以便替换关键字时调用
+        //Toast.makeText(context,text+path+start+end,Toast.LENGTH_LONG).show();
+        String string= "!["+text+"]("+path+")";
+        changeTEXT(string,start,start);
+
     }
+
+
 
     //TODO 重写 TextChangeListener
     @Override
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        //Toast.makeText(context,s+"  "+start+"   "+count,Toast.LENGTH_LONG).show();
+        //System.out.println(s+"  "+start+"   "+count);
     }
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
-        System.out.println("onTextChange");
-        saveAll();
-        if(before==0&&count>=1){
-            //添加内容的情况
-            getInserted(s,start,count);
-        }else if(before>=1&&count==0){
-            //删除部分内容的情况
-        }else if(before>=1&&count>=1){
-            //替换部分内容的情况
-        }
+        changeTEXT(s.toString().substring(start,start+count),start,start+before);
+        System.out.println(s+"  "+start+"   "+count+"   "+before);
     }
     @Override
     public void afterTextChanged(Editable s) {
+    }
+
+    //TODO changeTEXT：将 onTextChange 的参数解释为 TEXT 的变化
+    private void changeTEXT(String changeString,int start,int end){
+        if(start==0&&end==TEXT.length()){
+            TEXT = changeString;
+        }else if(start==0&&end!=TEXT.length()){
+            TEXT = changeString+TEXT.substring(end);
+        }else if(start!=0&&end==TEXT.length()){
+            TEXT = TEXT.substring(0,start)+changeString;
+        }else if(start!=0&&end!=0){
+            TEXT = TEXT.substring(0,start)+changeString+TEXT.substring(end);
+        }
+        System.out.println(TEXT);
     }
 
 
@@ -114,6 +145,7 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
         insert(txt);
         editText.addTextChangedListener(this);
     }
+
     private void setTextWithoutListening(String txt){
         editText.removeTextChangedListener(this);
         editText.setText(txt);
@@ -124,73 +156,210 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
     private void insertImageWithStartAndEnd(String text,String path,int start,int end){
         editable = editText.getEditableText();//获取EditText的文字
         System.out.println("insertImageWithStartAndEnd:--------Satrt:"+start+"  end:"+end +"editable length: "+ editable.length());
-        Toast.makeText(context,"text："+text+"  path："+path,Toast.LENGTH_LONG).show();
-        System.out.println(path);
+        //Toast.makeText(context,"text："+text+"  path："+path,Toast.LENGTH_LONG).show();
+        //System.out.println(path);
         text = "!["+text+"]("+path+")";
-        Bitmap originalBitmap= BitmapFactory.decodeFile(path);
-        //System.out.println("path is : "+path);
-        if(originalBitmap != null){
-            SpannableString ss = new SpannableString(text);
-            if 	(originalBitmap==null){
-                originalBitmap = Bitmap.createBitmap(400,400,Bitmap.Config.ARGB_8888);
+
+        AsyncTaskStart = start;
+        AsyncTaskEnd = end;
+
+        new BitmapWorkerTask(editable,path,editText.getWidth(),text).execute();
+        /*float hh = 800f;//这里设置高度为800f
+        float ww = 480f;//这里设置宽度为480f
+        int be = 1;//be=1表示不缩放
+        SpannableString ss = new SpannableString(text);
+
+        Bitmap newBitmap=null;
+
+        try{
+            InputStream input = new BufferedInputStream(new FileInputStream(path));
+            BitmapFactory.Options onlyBoundsOptions = new BitmapFactory.Options();
+            onlyBoundsOptions.inJustDecodeBounds = true;
+            onlyBoundsOptions.inDither = true;//optional
+            onlyBoundsOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;//optional
+            //new BitmapWorkerTask(editable,contentPath,editText.getWidth(),text).execute();
+            BitmapFactory.decodeStream(input, null, onlyBoundsOptions);
+            input.close();
+            int originalWidth = onlyBoundsOptions.outWidth;
+            int originalHeight = onlyBoundsOptions.outHeight;
+            if ((originalWidth == -1) || (originalHeight == -1))
+            //图片分辨率以480x800为标准
+
+            //缩放比。由于是固定比例缩放，只用高或者宽其中一个数据进行计算即可
+
+            if (originalWidth > originalHeight && originalWidth > ww) {//如果宽度大的话根据宽度固定大小缩放
+                be = (int) (originalWidth / ww);
+            } else if (originalWidth < originalHeight && originalHeight > hh) {//如果高度高的话根据宽度固定大小缩放
+                be = (int) (originalHeight / hh);
+            }
+            if (be <= 0)
+                be = 1;
+            //比例压缩
+            BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
+            bitmapOptions.inSampleSize = be;//设置缩放比例
+            bitmapOptions.inDither = true;//optional
+            bitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;//optional
+            input = new BufferedInputStream(new FileInputStream(path));
+            Bitmap bitmap = BitmapFactory.decodeStream(input, null, bitmapOptions);
+            input.close();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);//质量压缩方法，这里100表示不压缩，把压缩后的数据存放到baos中
+            int options = 100;
+            while (baos.toByteArray().length / 1024 > 100) {  //循环判断如果压缩后图片是否大于100kb,大于继续压缩
+                baos.reset();//重置baos即清空baos
+                //第一个参数 ：图片格式 ，第二个参数： 图片质量，100为最高，0为最差  ，第三个参数：保存压缩后的数据的流
+                bitmap.compress(Bitmap.CompressFormat.JPEG, options, baos);//这里压缩options%，把压缩后的数据存放到baos中
+                options -= 10;//每次都减少10
+            }
+            ByteArrayInputStream isBm = new ByteArrayInputStream(baos.toByteArray());//把压缩后的数据baos存放到ByteArrayInputStream中
+            newBitmap = BitmapFactory.decodeStream(isBm, null, null);//把ByteArrayInputStream数据生成图片
+        }catch (IOException e){ }
+
+        //TODO 再试一下
+        /*Bitmap originalBitmap = BitmapFactory.decodeFile(path);
+        if (originalBitmap != null) {
+
+            if (originalBitmap == null) {
+                originalBitmap = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888);
                 originalBitmap.eraseColor(Color.parseColor("#EEEEEE")); // �����ɫ
                 Canvas canvas = new Canvas(originalBitmap);
                 Paint paint = new Paint();
                 paint.setTextSize(50);
                 paint.setColor(Color.WHITE);
                 paint.setFlags(100);
-                paint.setStyle(Paint.Style.FILL); //��������������������
-                canvas.drawText("图片丢失",100,175,paint);
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawText("图片丢失", 100, 175, paint);
 
             }
+            int vw = editText.getWidth();
             int w = originalBitmap.getWidth();
             int h = originalBitmap.getHeight();
-            int vw = editText.getWidth();
-            System.out.println("width: "+vw);
+            System.out.println("width: " + vw);
             Bitmap bitmap;//float k=0.1f;
             float r;
-            if (w!=vw){
-                r=(float)vw/(float)w;//r=r*k;
-                if(r>0){
-                    Matrix matrix=new Matrix();
-                    matrix.postScale(r,r);
-                    bitmap=Bitmap.createBitmap(originalBitmap,0,0,w,h,matrix,false);
-                }else{
-                    bitmap=null;
+            if (w != vw) {
+                r = (float) vw / (float) w;//r=r*k;
+                if (r > 0) {
+                    Matrix matrix = new Matrix();
+                    matrix.postScale(r, r);
+                    bitmap = Bitmap.createBitmap(originalBitmap, 0, 0, w, h, matrix, false);
+                } else {
+                    bitmap = null;
                 }
-            }else{ bitmap=originalBitmap; }
-            CenterImageSpan imageSpan = new CenterImageSpan(context, bitmap);
-            mClickableSpan clickablespan=new mClickableSpan(path){
+            } else {
+                bitmap = originalBitmap;
+            }
+
+         */
+            /*CenterImageSpan imageSpan = new CenterImageSpan(context, newBitmap);
+            mClickableSpan clickablespan = new mClickableSpan(path) {
                 @Override
-                public void onClick(View v){
-                    //Intent intent=new Intent("com.des.butler.ACTION_START");
-                    //intent.addCategory("com.des.butler.PICTURE");
-                    //intent.putExtra("ID", AApicId);
-                    //context.startActivity(intent);
-                    //saveToDataBase();
-                    //finish();
+                public void onClick(View v) {
                 }
             };
             ss.setSpan(clickablespan,0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             ss.setSpan(imageSpan, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            System.out.println("ss is : "+ss);
-            editable.append("\n");
-            if (TextUtils.isEmpty(ss)) return;
-            if (start < 0 || start >= editable.length()) {
-                editable.append(ss);//选择不存在或在文末
-            } else {
-
-                editable.replace(start, end, ss);//光标所在位置插入
+            //System.out.println("ss is : " + ss);
+            if (ss != null) {
+                editable.append("\n");
+                //Toast.makeText(context,ss,Toast.LENGTH_LONG);
+                if (AsyncTaskStart < 0 || AsyncTaskStart >= editable.length())
+                    editable.append(ss);//选择不存在或在文末
+                else editable.replace(AsyncTaskStart, AsyncTaskEnd, ss);//光标所在位置插入
             }
 
-            editable.append("\n");
-            editable.append("\n");
-            //Toast.makeText(context,ss,Toast.LENGTH_LONG).show();
-        }else{
-            Toast.makeText(context,"BitmapFactory.decodeFile(path) ==> null",Toast.LENGTH_LONG).show();
-            System.out.println("is null ");
+
+        /*} else {
+            System.out.println("fail to get image");
+            //Toast.makeText(context,"fail to decode Image",Toast.LENGTH_SHORT).show();
+        }
+
+         */
+    }
+
+    //TODO 图片加载线程
+    class BitmapWorkerTask extends AsyncTask<Integer, Void, SpannableString> {
+        private WeakReference<Editable> reference;
+        //private int data = 0;
+        private String path;
+        private String text;
+        private int vw;
+
+        public BitmapWorkerTask(Editable editable, String path, int vw, String text) {
+            // Use a WeakReference to ensure the ImageView can be garbage collected
+            reference = new WeakReference<Editable>(editable);
+            this.path = path;
+            this.vw = vw;
+            this.text = text;
+
+        }
+
+        // Decode image in background.
+        @Override
+        protected SpannableString doInBackground(Integer... params) {
+            System.out.println("------------AsyncTask: decode in background----------");
+            //data = params[0];
+            Bitmap originalBitmap = BitmapFactory.decodeFile(path);
+            if (originalBitmap != null) {
+                SpannableString ss = new SpannableString(text);
+                if (originalBitmap == null) {
+                    originalBitmap = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888);
+                    originalBitmap.eraseColor(Color.parseColor("#EEEEEE")); // �����ɫ
+                    Canvas canvas = new Canvas(originalBitmap);
+                    Paint paint = new Paint();
+                    paint.setTextSize(50);
+                    paint.setColor(Color.WHITE);
+                    paint.setFlags(100);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawText("图片丢失", 100, 175, paint);
+
+                }
+                int w = originalBitmap.getWidth();
+                int h = originalBitmap.getHeight();
+                System.out.println("width: " + vw);
+                Bitmap bitmap;//float k=0.1f;
+                float r;
+                if (w != vw) {
+                    r = (float) vw / (float) w;//r=r*k;
+                    if (r > 0) {
+                        Matrix matrix = new Matrix();
+                        matrix.postScale(r, r);
+                        bitmap = Bitmap.createBitmap(originalBitmap, 0, 0, w, h, matrix, false);
+                    } else {
+                        bitmap = null;
+                    }
+                } else {
+                    bitmap = originalBitmap;
+                }
+                CenterImageSpan imageSpan = new CenterImageSpan(context, bitmap);
+                mClickableSpan clickablespan = new mClickableSpan(path) {
+                    @Override
+                    public void onClick(View v) {
+                    }
+                };
+                ss.setSpan(clickablespan,0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ss.setSpan(imageSpan, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                System.out.println("ss is : " + ss);
+                return ss;
+            } else {
+                System.out.println("still get null");
+                return null;
+            }
+        }
+
+        // Once complete, see if ImageView is still around and set bitmap.
+        @Override
+        protected void onPostExecute(SpannableString ss) {
+            if (ss != null) {
+                editable.append("\n");
+                //Toast.makeText(context,ss,Toast.LENGTH_LONG);
+                if (AsyncTaskStart < 0 || AsyncTaskStart >= editable.length())
+                    editable.append(ss);//选择不存在或在文末
+                else editable.replace(AsyncTaskStart, AsyncTaskEnd, ss);//光标所在位置插入
+            }
         }
     }
+
 
     //TODO InsertImageWithStartAndEnd 的无监听版本
     private void insertImageWithStartAndEndWithoutListening(String text,String path,int start,int end){
@@ -200,12 +369,7 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
     }
 
     //TODO onTextChanged-获取插入的内容
-    public String getInserted(CharSequence s, int start,int count){
-        String inserted = null;
-        String afterChange = s.toString();
-        inserted = afterChange.substring(start,start+count);
-        return inserted;
-    }
+
 
     //TODO 核心：扫描指定内容中的关键字
     private List<Keyword> scanKeyword(String string){
@@ -253,6 +417,8 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
         while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.TITLE));
         System.out.println("EditTextController: scanKeyword => TITLE: "+matcher.group());}
 
+        //Toast.makeText(context,keywordList.toString(),Toast.LENGTH_LONG).show();
+
         return keywordList;
     }
 
@@ -263,6 +429,10 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
             String string = keyword.getOriginalText();
             switch (keyword.keywordType){
                 case IMAGE:
+
+                    String a = string.substring(string.indexOf("](")+2,string.indexOf(")"));
+                    String b = string.substring(string.indexOf("![")+2,string.indexOf("]("));
+                    //Toast.makeText(context,a+b+keyword.indexStart+keyword.getIndexEnd(),Toast.LENGTH_LONG).show();
                     insertImageWithStartAndEndWithoutListening(
                             string.substring(string.indexOf("![")+2,string.indexOf("](")),
                             string.substring(string.indexOf("](")+2,string.indexOf(")")),
@@ -354,27 +524,24 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
 
     }
 
-    //TODO SaveAll-全部保存,在此开启线程
+    //TODO 公开方法：SaveAll-全部保存,在此开启线程
     public void saveAll(){
-        editable = editText.getText();
-        System.out.println("saveAll: new SaveTask to save "+ editable.toString());
-        new SaveTask(editable,contentPath).execute();
+        System.out.println("saveAll: new SaveTask to save "+ TEXT);
+        new SaveTask(TEXT,contentPath).execute();
     }
 
     //TODO 线程：存储内容
     class SaveTask extends AsyncTask<Void,Integer,Boolean> {
         private String saveContentPath;
-        private Editable saveEditable;
-        public SaveTask(Editable saveEditable,String saveContentPath){
+        private String content;
+        public SaveTask(String content,String saveContentPath){
             this.saveContentPath = saveContentPath;
-            this.saveEditable = saveEditable;
+            this.content = content;
         }
 
         @Override
         protected void onPreExecute(){
-            System.out.println("SaveTask: onPreExecute");
-            //downloadStatus.setText("开始下载 ...");
-            //progress.setProgress(0);
+            //System.out.println("SaveTask: onPreExecute");
         }
         @Override
         protected Boolean doInBackground(Void... params){
@@ -386,18 +553,12 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
             File Journote_NoteFolder =new File(JournoteFolder,"Notes");
             while(!Journote_NoteFolder.exists()){ Journote_NoteFolder.mkdir(); }
 
-
-
-            String allData = editable.toString();
-
-            System.out.println("all data : "+allData);
-
             FileOutputStream out = null;
             BufferedWriter writer = null;
             try{
                 out = new FileOutputStream(Journote_NoteFolder+"/"+contentPath);
                 writer = new BufferedWriter(new OutputStreamWriter(out));
-                writer.write(allData);
+                writer.write(content.replaceAll("\\n", ";n"));
             }catch (IOException e){
                 e.printStackTrace();
             }finally{
@@ -409,7 +570,7 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
                     e.printStackTrace();
                 }
             }
-            System.out.println("finish save "+allData);
+            System.out.println("-----------finish save-----------");
             return null;
         }
         @Override
@@ -419,14 +580,14 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
         }
         @Override
         protected void onPostExecute(Boolean result){
-            System.out.println("SaveTask: onPostExecute");
+            //System.out.println("SaveTask: onPostExecute");
             //Toast.makeText(MainActivity.this,"Pose Execute",Toast.LENGTH_SHORT).show();
         }
 
     }
 
     //TODO 从 文件路径 读取至 editable
-    public void readToEditable(String contentPath){
+    private void readToEditable(String contentPath){
         System.out.println("read: new ReadTask");
         new ReadTask(editText,contentPath).execute();
 
@@ -444,7 +605,7 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
 
         @Override
         protected void onPreExecute(){
-            System.out.println("SaveTask: onPreExecute");
+            System.out.println("ReadTask: onPreExecute");
             //downloadStatus.setText("开始下载 ...");
             //progress.setProgress(0);
         }
@@ -467,6 +628,7 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
                 String line = "";
                 while ((line = reader.readLine())!=null){
                     content.append(line);
+                    //content.append("\\n");
                 }
             }catch (IOException e){
                 e.printStackTrace();
@@ -479,16 +641,18 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
                     }
                 }
             }
-
-            stringGet = content.toString();
+            System.out.println(stringGet);
+            stringGet = content.toString().replaceAll(";n", "\n");
+            System.out.println(stringGet);
+            if(stringGet!=null) TEXT = stringGet;
             publishProgress(1);
             return null;
         }
         @Override
         protected void onProgressUpdate(Integer... values){
-            setTextWithoutListening(stringGet);
-            System.out.println("set text stringGet: "+stringGet);
-            convertKeywords(scanKeyword(stringGet));
+            setTextWithoutListening(TEXT);
+            System.out.println("read into TEXT: "+stringGet);
+            convertKeywords(scanKeyword(TEXT));
         }
         @Override
         protected void onPostExecute(Boolean result){

@@ -18,6 +18,10 @@ public class DatabaseManager {
     private DatabaseOpenHelper databaseOpenHelper;
     private SQLiteDatabase database;
     Item tempItem;
+
+    List<Item> tempList;
+    long[] tempScan;
+
     //TODO 构造方法只需要传入 Context
     public DatabaseManager(Context context){
         this.context = context;
@@ -39,6 +43,7 @@ public class DatabaseManager {
         database.insert("Item", null, values);
         values.clear();
         addRecord(newItem.getHistory().getInitRecord());
+        System.out.println("******************Item added****************");
         Toast.makeText(context,"added"+contentPath,Toast.LENGTH_LONG).show();
     }
 
@@ -104,27 +109,12 @@ public class DatabaseManager {
     public List<Item> getTop(int request){
         List<Item> response = new ArrayList<Item>();
         Boolean have = true ;
-        long recordNumber = getCurrentRecordCount();
-        while(response.size()<request&&recordNumber>=1){
-            List<Record> records = searchRecordWithNumber(recordNumber);
-            if(records.size()>=1) {
-                Item item;
-                Record record = records.get(0);
-                if (null!=record.getContentPath()){
-                item = getItem(record.getContentPath());
-                } else{System.out.println("record contentpath is null  ID:"+record.getRecordNumber());item = null;}
-                if(null!=item){
-                    if(!response.contains(item)){//已重写Item的equals方法，通过contentPath判断相等，可直接调用contain
-                        System.out.println("List add Item ID="+item.getContentPath()+"   contains="+response.contains(item));
-                        System.out.println(response);
-                        response.add(item);
-
-                    }
-                }
-                recordNumber --;
-                //System.out.println(recordNumber);
-            }else{have=false;}
-
+        long recordNumber = getCurrentItemCount();
+        if(recordNumber<request){request=(int)recordNumber;};
+        for(int i=0;i<request;i++){
+            System.out.println("searchItemWithId"+(recordNumber-i-1)+ " when CurrentItemCount "+(int)getCurrentItemCount());
+            List<ItemString> strings = searchItemWithId(recordNumber-i);
+            response.add(getItem(strings.get(0).getContentPath()));
         }
         return response;
     }
@@ -136,6 +126,13 @@ public class DatabaseManager {
     //TODO 获取当前记录总数
     public long getCurrentRecordCount(){
         Cursor cursor= database.rawQuery("select count(1) from Record",null);
+        cursor.moveToFirst();
+        long count = cursor.getLong(0);
+        cursor.close();
+        return count;
+    }
+    public long getCurrentItemCount(){
+        Cursor cursor= database.rawQuery("select count(1) from Item",null);
         cursor.moveToFirst();
         long count = cursor.getLong(0);
         cursor.close();
@@ -206,15 +203,36 @@ public class DatabaseManager {
         List<ItemString> itemStringList = new ArrayList<ItemString>();
         ItemString itemString;
         Cursor itemCursor=database.query("Item",null, "contentPath=?", new String[]{contentPath}, null, null, null);
-        System.out.println("--------------------------------------------------------start To Search: contentPath="+ contentPath);
+        System.out.println("start To Search: contentPath="+ contentPath);
         if(itemCursor.moveToFirst()){
             do{
                 String title = itemCursor.getString(itemCursor.getColumnIndex("title"));
                 String labelsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
                 String itemAdditionsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
-                itemString = new ItemString(title,labelsString,itemAdditionsString);
+                itemString = new ItemString(title,contentPath,labelsString,itemAdditionsString);
                 itemStringList.add(itemString);
-                System.out.println("--------------------------------------------------------find itemString : "+contentPath);
+                System.out.println("find item  where contrntPath="+contentPath);
+            }while(itemCursor.moveToNext());
+        }
+        itemCursor.close();
+        itemString = null;
+        return itemStringList;
+    }
+    private List<ItemString> searchItemWithId(long id){
+        List<ItemString> itemStringList = new ArrayList<ItemString>();
+        ItemString itemString;
+        Cursor itemCursor=database.query("Item",null, "id=?", new String[]{""+id}, null, null, null);
+        System.out.println("start To Search: id="+ id);
+        if(itemCursor.moveToFirst()){
+            do{
+                String title = itemCursor.getString(itemCursor.getColumnIndex("title"));
+                String labelsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
+                String itemAdditionsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
+                String contentPath = itemCursor.getString(itemCursor.getColumnIndex("contentPath"));
+                System.out.println(contentPath);
+                itemString = new ItemString(title,contentPath,labelsString,itemAdditionsString);
+                itemStringList.add(itemString);
+                System.out.println("find item where Id="+id);
             }while(itemCursor.moveToNext());
         }
         itemCursor.close();
@@ -273,14 +291,17 @@ public class DatabaseManager {
         return recordList;
     }
 
+
     private class ItemString{
         private String title;
+        private String contentPath;
         private String labelsString;
         private String itemAdditionsString;
-        public ItemString (String title,String labelsString,String itemAdditionsString){
+        public ItemString (String title,String contentPath,String labelsString,String itemAdditionsString){
             this.title = title;
             this.labelsString = labelsString;
             this.itemAdditionsString = itemAdditionsString;
+            this.contentPath = contentPath;
         }
 
         public String getTitle() {
@@ -293,6 +314,10 @@ public class DatabaseManager {
 
         public String getItemAdditionsString() {
             return itemAdditionsString;
+        }
+
+        public String getContentPath() {
+            return contentPath;
         }
     }
 

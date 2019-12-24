@@ -8,8 +8,9 @@ import android.widget.Toast;
 public class DatabaseOpenHelper extends SQLiteOpenHelper {
 
     public static final String CREATE_ITEM="create table Item("
+            +"id integer primary key autoincrement,"
             +"title text,"
-            +"contentPath text primary key,"
+            +"contentPath text,"
             +"labels text,"
             +"itemAdditions text)";
     public static final String CREATE_RECORD="create table Record("

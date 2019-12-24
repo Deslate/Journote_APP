@@ -24,10 +24,11 @@ public class Label {
     }
     //TODO fromString()
     public Label(String string){
-        int[] index = new int[7];
+        System.out.println(string);
+        /*int[] index = new int[7];
         index[0]=1;index[6]=string.length()-1;
         for(int i=1;i<=5;i++){
-            index[1]=string.indexOf("|",index[i-1]+1);
+            index[i]=string.indexOf("|",index[i-1]+1);
         }
         labelName = string.substring(index[0],index[1]);
         discription = string.substring(index[1]+1,index[2]);
@@ -35,6 +36,8 @@ public class Label {
         moodAccessibility = boolFromString(string.substring(index[3]+1,index[4]));
         weatherAccessibility = boolFromString(string.substring(index[4]+1,index[5]));
         favourAccessibility = boolFromString(string.substring(index[5]+1,index[6]));
+
+         */
     }
 
     private Boolean boolFromString(String str){

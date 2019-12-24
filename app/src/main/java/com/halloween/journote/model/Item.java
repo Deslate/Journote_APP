@@ -100,4 +100,12 @@ public class Item {
     public String toString(){
         return title+"+"+contentPath+"+"+labels.toString()+"+"+history.toString()+"+"+itemAdditions.toString();
     }
+    @Override
+    public boolean equals(Object o){
+        if(this==o) {System.out.println("ItemEquals: true");return true;}
+        if (o == null || getClass() != o.getClass()) {System.out.println("ItemEquals: true");return false;}
+        if (contentPath.equals(((Item) o).contentPath)) {System.out.println("ItemEquals: true");return true;}
+        else if(contentPath.equals(((Item) o).contentPath)) {System.out.println("ItemEquals: false ("+((Item) o).contentPath+")");return false;}
+        else return false;
+    }
 }

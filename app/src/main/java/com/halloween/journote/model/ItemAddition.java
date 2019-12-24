@@ -33,7 +33,7 @@ public class ItemAddition {
     }
 
     public ItemAddition(String str){
-        String contentStr = str.substring(str.indexOf(":"+1));
+     /*   String contentStr = str.substring(str.indexOf(":"+1));
         switch (contentStr){
             case "HAPPY":
                 this.mood = Mood.HAPPY;this.type = AdditionType.MOOD;return;
@@ -52,20 +52,24 @@ public class ItemAddition {
             case "UNFAVOUR":
                 this.favour = Favour.NON_FALOUR;this.type = AdditionType.FAVOUR;return;
         }
+
+      */
     }
 
     @Override
     public String toString(){
         String value;
-        switch(type){
-            case MOOD:
-                return type+":"+mood;
-            case WEATHER:
-                return type+":"+weather;
-            case FAVOUR:
-                return type+":"+favour;
-            default:
-                return "error";
-        }
+        if(type != null) {
+            switch(type){
+                case MOOD:
+                    return type+":"+mood;
+                case WEATHER:
+                    return type+":"+weather;
+                case FAVOUR:
+                    return type+":"+favour;
+                default:
+                    return "error";
+            }
+        }else {return "";}
     }
 }

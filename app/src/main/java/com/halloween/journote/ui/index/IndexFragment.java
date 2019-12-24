@@ -21,8 +21,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.halloween.journote.MainActivity;
 import com.halloween.journote.R;
+import com.halloween.journote.model.DatabaseManager;
 import com.halloween.journote.model.Item;
 
 import java.util.Date;
@@ -30,7 +32,6 @@ import java.util.List;
 
 import static com.halloween.journote.MainActivity.actionBar;
 import static com.halloween.journote.MainActivity.decor;
-import static com.halloween.journote.MainActivity.items;
 
 public class IndexFragment extends Fragment {
 
@@ -38,7 +39,13 @@ public class IndexFragment extends Fragment {
 
     private IndexViewModel indexViewModel;
     private SwipeRefreshLayout refreshLayout;
+    private RecyclerView recyclerView;
+    ItemListAdapter.OnItemLongClickListener longListener;
+    ItemListAdapter.OnItemClickListener listener;
+    DatabaseManager database ;
+    ItemListAdapter adapter;
 
+    List<Item> list;
 
 
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -48,9 +55,12 @@ public class IndexFragment extends Fragment {
         setCustomActionBar();
         setHasOptionsMenu(true);
 
-        final ItemListAdapter adapter = new ItemListAdapter(items);
-        refreshLayout = root.findViewById(R.id.index_refresh);
+        database = new DatabaseManager(this.getActivity());
 
+        recyclerView = (RecyclerView) root.findViewById(R.id.index_recycler_view);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        recyclerView.setLayoutManager(layoutManager);
+        refreshLayout = root.findViewById(R.id.index_refresh);
         refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -65,33 +75,6 @@ public class IndexFragment extends Fragment {
                 },2000);
             }
         });
-
-        adapter.setOnItemClickListener(new ItemListAdapter.OnItemClickListener() {
-            @Override
-            public void onClick(int position) {
-                Item item=items.get(position);
-                Intent intent=new Intent("com.halloween.journote.ACTION_START");
-                intent.addCategory("com.halloween.journote.EDIT_ACTIVITY");
-                intent.putExtra("Day", item.getContentPath());
-                startActivity(intent);
-            }
-        });
-
-
-        adapter.setOnItemLongClickListener(new ItemListAdapter.OnItemLongClickListener() {
-            @Override
-            public void onClick(int position) {
-                Toast.makeText(root.getContext(), "long click " + position, Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        RecyclerView recyclerView = (RecyclerView) root.findViewById(R.id.index_recycler_view);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
-        recyclerView.setLayoutManager(layoutManager);
-        recyclerView.setAdapter(adapter);
-
-
-
         final TextView textView = root.findViewById(R.id.text_index);
 
         indexViewModel.getText().observe(this, new Observer<String>() {
@@ -100,7 +83,39 @@ public class IndexFragment extends Fragment {
                 textView.setText(s);
             }
         });
+
+
+        listener = new ItemListAdapter.OnItemClickListener() {
+            @Override
+            public void onClick(int position) {
+                Item item=list.get(position);
+                System.out.println("get position: "+item);
+                Intent intent=new Intent("com.halloween.journote.ACTION_START");
+                intent.addCategory("com.halloween.journote.EDIT_ACTIVITY");
+                intent.putExtra("contentPath", item.getContentPath());
+                System.out.println("IndexFragment onClick-----------------getContentPath() ==> "+item.getContentPath());
+                startActivityForResult(intent,1);
+            }
+        };
+        longListener = new ItemListAdapter.OnItemLongClickListener() {
+            @Override
+            public void onClick(int position) {
+                Toast.makeText(root.getContext(), "long click " + position, Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        refresh();
+
         return root;
+    }
+
+    public void refresh(){
+        list = database.getTop(20);
+        adapter = new ItemListAdapter(list);
+        adapter.setOnItemClickListener(listener);
+        adapter.setOnItemLongClickListener(longListener);
+        recyclerView.setAdapter(adapter);
+        System.out.println("-----------------------------------List refresh" );
     }
 
 
@@ -116,9 +131,15 @@ public class IndexFragment extends Fragment {
         decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         //View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |会导致UI位置错乱
     }
-    public void refresh(){
-        //items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",));
-        System.out.println("refresh" );
+
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        System.out.println("Active Result");
+        refresh();
     }
+
 
 }

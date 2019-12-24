@@ -37,6 +37,7 @@ import com.halloween.journote.R;
 import com.halloween.journote.model.DatabaseManager;
 import com.halloween.journote.model.DatabaseOpenHelper;
 import com.halloween.journote.model.Item;
+import com.halloween.journote.model.Record;
 
 
 import java.io.File;
@@ -79,6 +80,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     private int keyboardHeight;
 
     private Item item;
+    private String contentPath = "";
 
     private DatabaseManager database;
 
@@ -97,14 +99,16 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         editContent = (EditText) findViewById(R.id.edit_content);
         backBtn = (Button) findViewById(R.id.back_btn);
 
+
         //初始化数据库控制器
         database = new DatabaseManager(this);
 
         //初始化Item对象
-        String contentPath = performInit();
+        performInit();
 
         //设置EditText跟踪
-        editTextController = new EditTextController(this,editContent,contentPath);
+        editTextController = new EditTextController(this,editContent);
+        editTextController.startControl(contentPath);
 
         //设置软键盘收放监听事件
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new KeyboardOnGlobalChangeListener());
@@ -112,6 +116,11 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
 
         //设置菜单栏（ActionBar）控件监听
         backBtn.setOnClickListener(this);
+
+        editTitle.clearFocus();
+        editContent.clearFocus();
+        editTitle.setSelected(false);
+        editContent.setSelected(false);
 
     }
 
@@ -311,51 +320,6 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             }
         }else if(requestCode == TAKE_PHOTO){
             if (resultCode==RESULT_OK){
-                /*try{
-                    Bitmap bitmap= BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
-                    // ���ﻹҪ�洢ͼƬ��Ϣ�����ݿ⣬����bitmap��processBitmapAndInsert�������룡����
-                    File Butler =new File(Environment.getExternalStorageDirectory(),"Butler");
-                    if(!Butler.exists()){
-                        Butler.mkdir();
-                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "����Butler��"+Environment.getExternalStorageDirectory(), Toast.LENGTH_SHORT).show();}
-                    }
-                    File Gallery=new File(Butler,"Gallery");
-                    if(!Gallery.exists()){
-                        Gallery.mkdir();
-                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "����Gallery��"+Butler, Toast.LENGTH_SHORT).show();}
-                    }
-                    java.util.Calendar now =java.util.Calendar.getInstance();
-                    int Pday=now.get(java.util.Calendar.DAY_OF_MONTH);
-                    int Pmonth=now.get(java.util.Calendar.MONTH)+1;
-                    int Pyear=now.get(java.util.Calendar.YEAR);
-                    int Phour=now.get(java.util.Calendar.HOUR_OF_DAY);
-                    int Pminute=now.get(java.util.Calendar.MINUTE);
-                    int Psecond=now.get(java.util.Calendar.SECOND);
-                    String User=com.des.butler.MainActivity.getUserName(ItemEdit.this,com.des.butler.MainActivity.userId);
-                    String fileName ="photo:"+User+"-"+Pyear+"-"+Pmonth+"-"+Pday+"-"+Phour+"-"+Pminute+"-"+Psecond+".jpg";
-                    if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, fileName, Toast.LENGTH_SHORT).show();}
-                    File file=new File(Gallery,fileName);
-                    try{
-                        FileOutputStream fos =new FileOutputStream(file);
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-                        fos.flush();
-                        fos.close();
-                    }catch(FileNotFoundException e){
-                        e.printStackTrace();
-                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "�ļ�δ�����ɹ�", Toast.LENGTH_SHORT).show();}
-                    }catch(IOException e){
-                        e.printStackTrace();
-                        if(com.des.butler.MainActivity.DeveloperState==true){Toast.makeText(ItemEdit.this, "IO����쳣", Toast.LENGTH_SHORT).show();}
-                    }
-                    String path = file.getPath();
-                    insertImg(path);
-
-                }catch(FileNotFoundException e){
-                    e.printStackTrace();
-
-                }
-
-                 */
 
             }
         }
@@ -383,18 +347,30 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     private void performDelete(){
         database.deleteItem(item);
         item = null;
-    }
-    private void performQuit(){
-        database.updateItem(item);
         finish();
     }
-    //TODO 初始化Item对象
-    private String performInit(){
-        String contentPath = new DatabaseManager(this).getNewContentPathId()+".journote";
-        //String contentPath = "haha";
-        item = new Item("Untitled",contentPath,new Date(),"Default",this);
-        database.addItem(item);
-        return contentPath;
+    //TODO 退出前存储 Item 数据
+    private void performQuit(){
+        if(null!=item){
+            item.addRecord(new Record(new Date(),"default","read",contentPath,this));
+            item.setTitle(editTitle.getText().toString());
+            database.updateItem(item);
+            finish();
+        }
+
+    }
+    //TODO 初始化Item对象以及输入框内容
+    private void performInit(){
+        Intent intent=getIntent();
+        contentPath =intent.getStringExtra("contentPath");
+        if (contentPath.isEmpty()){
+            contentPath = new DatabaseManager(this).getNewContentPathId()+".journote";
+            item = new Item("Untitled",contentPath,new Date(),"Default",this);
+            database.addItem(item);
+        }else{
+            item = database.getItem(contentPath);
+            editTitle.setText(item.getTitle());
+        }
     }
 
 }

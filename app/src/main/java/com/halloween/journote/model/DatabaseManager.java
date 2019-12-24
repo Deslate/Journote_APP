@@ -5,7 +5,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.widget.Toast;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -24,7 +23,6 @@ public class DatabaseManager {
         this.context = context;
         databaseOpenHelper=new DatabaseOpenHelper(context);
         database = databaseOpenHelper.getWritableDatabase();
-        tempItem = new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",getCurrentRecordCount()+1);
     }
 
     //TODO 增添一个 Item 记录第一条 Record
@@ -46,13 +44,13 @@ public class DatabaseManager {
 
     //TODO 删除某个 Item 并记录 Record
     public void deleteItem(Item itemToDelete){
-
+        database.delete("Item", "contentPath=?", new String[]{""+itemToDelete.getContentPath()});
     }
 
     //TODO 修改某个 Item 并记录 Record
     public void updateItem(Item itemUpdated){
-        List<Cursor> cursorList = searchItemWithContentPath(itemUpdated.getContentPath());
-        if(cursorList.size()==1){
+        List<ItemString> itemStringList = searchItemWithContentPath(itemUpdated.getContentPath());
+        if(itemStringList.size()==1){
             String title = itemUpdated.getTitle();
             String contentPath = itemUpdated.getContentPath();
             String labels = itemUpdated.getLabelListAsString();
@@ -63,7 +61,13 @@ public class DatabaseManager {
             values.put("itemAdditions",itemAdditions);
             database.update("Item", values, "contentPath=?", new String[]{contentPath});
             values.clear();
-            addRecord(itemUpdated.getHistory().getLatestRecord());
+
+            Record record = itemUpdated.getHistory().getLatestRecord();
+            System.out.println(record.toString());
+            if(null==record) {
+                record = new Record(new Date(),"unknown","no-record-fix",itemUpdated.getContentPath(),getCurrentRecordCount()+1);
+            }
+            addRecord(record);
         }
     }
 
@@ -74,41 +78,55 @@ public class DatabaseManager {
         List<Label> labels = new ArrayList<Label>();
         List<ItemAddition> itemAdditions = new ArrayList<ItemAddition>();
 
-        List<Cursor> itemCursorList = searchItemWithContentPath(contentPath);
-        if(itemCursorList.size()==1){
-            Cursor itemCursor = itemCursorList.get(0);
-            String title = itemCursor.getString(itemCursor.getColumnIndex("title"));
-            String labelsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
-            String itemAdditionsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
-            List<Cursor> recordCursorList = searchItemWithContentPath(contentPath);
-            int size = recordCursorList.size();
-            List<Record> recordList = new ArrayList<Record>();
-            for(int i=0;i<size;i++){
-                Cursor cursor = recordCursorList.get(i);
-                long recordNumber = cursor.getLong(cursor.getColumnIndex("recordNumber"));
-                String editDateString = cursor.getString(cursor.getColumnIndex("editDate"));
-                String editorUserId = cursor.getString(cursor.getColumnIndex("editorUserId"));
-                String description = cursor.getString(cursor.getColumnIndex("description"));
-                Date editDate = new Date();
-                try {
-                    DateFormat format1 = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy", java.util.Locale.US);//"Fri Feb 22 20:22:00 CST 2019"字符串的转换
-                    editDate = format1.parse(editDateString);
-                }catch (ParseException e){ e.printStackTrace(); }
-                Record record = new Record(editDate,editorUserId,description,contentPath,recordNumber);
-                recordList.add(record);
-                record = null;
-            }
+        List<ItemString> itemStringList = searchItemWithContentPath(contentPath);
+        if(itemStringList.size()>=1){
+            ItemString itemString = itemStringList.get(0);
+            String title = itemString.getTitle();
+            //处理 List<Record>
+            List<Record> recordList = searchRecordWithContentPath(contentPath);
             history = new History(recordList);
             //处理 List<Label>
-            String[] labelStr = labelsString.substring(1,labelsString.length()-1).split(",");
+            String labelString = itemString.getLabelsString();
+            String[] labelStr = labelString.substring(1,labelString.length()-1).split(",");
             for(int i=0;i<=labelStr.length-1;i++){labels.add(new Label(labelStr[i]));}
             //处理 List<ItemAddition>
-            String[] additionStr = itemAdditionsString.substring(1,itemAdditionsString.length()-1).split(",");
+            String itemAdditionString = itemString.getItemAdditionsString();
+            String[] additionStr = itemAdditionString.substring(1,itemAdditionString.length()-1).split(",");
             for(int i=0;i<=additionStr.length-1;i++){itemAdditions.add(new ItemAddition(additionStr[i]));}
 
             item = new Item (title,contentPath,labels,history,itemAdditions);
+            System.out.println("Build:"+item.toString());
         }
         return item;
+    }
+
+    //TODO 获取最新的 N 条数据
+    public List<Item> getTop(int request){
+        List<Item> response = new ArrayList<Item>();
+        Boolean have = true ;
+        long recordNumber = getCurrentRecordCount();
+        while(response.size()<request&&recordNumber>=1){
+            List<Record> records = searchRecordWithNumber(recordNumber);
+            if(records.size()>=1) {
+                Item item;
+                Record record = records.get(0);
+                if (null!=record.getContentPath()){
+                item = getItem(record.getContentPath());
+                } else{System.out.println("record contentpath is null  ID:"+record.getRecordNumber());item = null;}
+                if(null!=item){
+                    if(!response.contains(item)){//已重写Item的equals方法，通过contentPath判断相等，可直接调用contain
+                        System.out.println("List add Item ID="+item.getContentPath()+"   contains="+response.contains(item));
+                        System.out.println(response);
+                        response.add(item);
+
+                    }
+                }
+                recordNumber --;
+                //System.out.println(recordNumber);
+            }else{have=false;}
+
+        }
+        return response;
     }
 
 
@@ -171,41 +189,111 @@ public class DatabaseManager {
         String editDate = record.getEditDate().toString();
         String editorUserId = record.getEditorUserId();
         String description = record.getDescription();
+        String contentPath = record.getContentPath();
+        //bug啊，千招万招终于找到你！这里还要添加contentPath嘞！
         ContentValues values =new ContentValues();
         values.put("recordNumber",recordNumber);
         values.put("editDate",editDate);
         values.put("editorUserId",editorUserId);
         values.put("description",description);
+        values.put("contentPath",contentPath);
+        System.out.println("saved: record ==> ID:"+recordNumber+"");
         database.insert("Record", null, values);
         values.clear();
     }
 
-    private List<Cursor> searchItemWithContentPath(String contentPath){
-        List<Cursor> cursorList = new ArrayList<Cursor>();
-        Cursor cursor=database.query("Item",null, "contentPath=?", new String[]{contentPath}, null, null, null);
-        if(cursor.moveToFirst()){
-            do{
-                cursorList.add(cursor);
-            }while(cursor.moveToNext());
-        }
-        return cursorList;
-    }
-
-    private List<ItemString> searchRecordWithContentPath(String contentPath){
+    private List<ItemString> searchItemWithContentPath(String contentPath){
         List<ItemString> itemStringList = new ArrayList<ItemString>();
-        Cursor cursor=database.query("Record",null, "contentPath=?", new String[]{contentPath}, null, null, null);
-        if(cursor.moveToFirst()){
+        ItemString itemString;
+        Cursor itemCursor=database.query("Item",null, "contentPath=?", new String[]{contentPath}, null, null, null);
+        System.out.println("--------------------------------------------------------start To Search: contentPath="+ contentPath);
+        if(itemCursor.moveToFirst()){
             do{
-                new ItemString();
-
-                cursor.close();
-            }while(cursor.moveToNext());
+                String title = itemCursor.getString(itemCursor.getColumnIndex("title"));
+                String labelsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
+                String itemAdditionsString = itemCursor.getString(itemCursor.getColumnIndex("labels"));
+                itemString = new ItemString(title,labelsString,itemAdditionsString);
+                itemStringList.add(itemString);
+                System.out.println("--------------------------------------------------------find itemString : "+contentPath);
+            }while(itemCursor.moveToNext());
         }
+        itemCursor.close();
+        itemString = null;
         return itemStringList;
     }
 
-    private class ItemString{
+    private List<Record> searchRecordWithContentPath(String contentPath){
+        //List<ItemString> itemStringList = new ArrayList<ItemString>();
+        List<Record> recordList = new ArrayList<Record>();
+        Record record;
+        Cursor cursor=database.query("Record",null, "contentPath=?", new String[]{contentPath}, null, null, null);
+        if(cursor.moveToFirst()){
+            do{
+                long recordNumber = cursor.getLong(cursor.getColumnIndex("recordNumber"));
+                String editDateString = cursor.getString(cursor.getColumnIndex("editDate"));
+                String editorUserId = cursor.getString(cursor.getColumnIndex("editorUserId"));
+                String description = cursor.getString(cursor.getColumnIndex("description"));
+                Date editDate = new Date();
+                try {
+                    DateFormat format1 = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy", java.util.Locale.US);//"Fri Feb 22 20:22:00 CST 2019"字符串的转换
+                    editDate = format1.parse(editDateString);
+                }catch (ParseException e){ e.printStackTrace(); }
+                record = new Record(editDate,editorUserId,description,contentPath,recordNumber);
+                recordList.add(record);
+            }while(cursor.moveToNext());
+        }
+        cursor.close();
+        record = null;
+        return recordList;
+    }
 
+    private List<Record> searchRecordWithNumber(Long recordNumber){
+        //List<ItemString> itemStringList = new ArrayList<ItemString>();
+        List<Record> recordList = new ArrayList<Record>();
+        Record record;
+        Cursor cursor=database.query("Record",null, "recordNumber=?", new String[]{""+recordNumber}, null, null, null);
+        if(cursor.moveToFirst()){
+            do{
+                String contentPath = cursor.getString(cursor.getColumnIndex("contentPath"));
+                String editDateString = cursor.getString(cursor.getColumnIndex("editDate"));
+                String editorUserId = cursor.getString(cursor.getColumnIndex("editorUserId"));
+                String description = cursor.getString(cursor.getColumnIndex("description"));
+                Date editDate = new Date();
+                System.out.println("Searched: record ==> ID:"+recordNumber+" content path: "+contentPath);
+                try {
+                    DateFormat format1 = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy", java.util.Locale.US);//"Fri Feb 22 20:22:00 CST 2019"字符串的转换
+                    editDate = format1.parse(editDateString);
+                }catch (ParseException e){ e.printStackTrace(); }
+                record = new Record(editDate,editorUserId,description,contentPath,recordNumber);
+                recordList.add(record);
+            }while(cursor.moveToNext());
+        }
+        cursor.close();
+        record = null;
+        return recordList;
+    }
+
+    private class ItemString{
+        private String title;
+        private String labelsString;
+        private String itemAdditionsString;
+        public ItemString (String title,String labelsString,String itemAdditionsString){
+            this.title = title;
+            this.labelsString = labelsString;
+            this.itemAdditionsString = itemAdditionsString;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getLabelsString() {
+            return labelsString;
+        }
+
+        public String getItemAdditionsString() {
+            return itemAdditionsString;
+        }
     }
 
 }

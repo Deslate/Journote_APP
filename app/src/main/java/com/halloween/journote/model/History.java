@@ -18,7 +18,9 @@ public class History {
 
     public Record getLatestRecord (){
         int size = editRecords.size();
-        return editRecords.get(size-1);
+        if(size>=1) {
+            return editRecords.get(size-1);
+        }else{return null;}
     }
 
     public Record getInitRecord (){

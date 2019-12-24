@@ -2,6 +2,7 @@ package com.halloween.journote;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.database.sqlite.SQLiteDatabase;
@@ -23,18 +24,21 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.halloween.journote.model.DatabaseManager;
 import com.halloween.journote.model.DatabaseOpenHelper;
 import com.halloween.journote.model.Item;
 import com.halloween.journote.model.ItemAddition;
 import com.halloween.journote.model.Label;
 import com.halloween.journote.ui.edit.EditTextController;
+import com.halloween.journote.ui.index.IndexFragment;
 import com.halloween.journote.ui.index.ItemListAdapter;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -59,31 +63,18 @@ public class MainActivity extends AppCompatActivity {
     public static ActionBar actionBar;
     public static View decor;
     public static List<Item> items = new ArrayList<>();
+    private FloatingActionButton floatingActionButton;
     //
 
     public void test(){
-        String REGEX = "(?<!!)\\[[^\\[]*\\]\\([^\\[]*\\)";
-        String INPUT = "dog image: ![dog image](img192230.jpg) and as for cat: ![cat image](img123230.jpg)\n" +
-                "you can use [Link for \"[……](……)\"](img633619.jpg)\n" +
-                "link: [baidu](https://www.baidu.com)\n" +
-                "---\n" +
-                "1---\n" +
-                "\n" +
-                "---\n" +
-                "------[^.]#.+\n" +
-                "--\n" +
-                "#hahaha\n" +
-                "dbwble1ee21#fbjkfeq\n" +
-                "dnwlqn3k1#\n" +
-                "\n" +
-                "#dbke2#########hdsalw\n" +
-                "####cbldqsf";
+        String REGEX = "!\\[[^\\[]*\\]\\([^!\\[]*\\)";//(?<=\\]\\().*(?=\\))
+        String INPUT = "![/storage/emulated/0/DCIM/Camera/IMG_20191223_134828.jpg](/storage/emulated/0/DCIM/Camera/IMG_20191223_134828.jpg)";
         Pattern p = Pattern.compile(REGEX);
         Matcher m = p.matcher(INPUT); // 获取 matcher 对象
         int count = 0;
         while(m.find()) {
             count++;
-            Toast.makeText(this,m.group(),Toast.LENGTH_LONG).show();
+            //Toast.makeText(this,m.group(),Toast.LENGTH_LONG).show();
         }
 
     }
@@ -110,6 +101,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         BottomNavigationView navView = findViewById(R.id.nav_view);
+        floatingActionButton = findViewById(R.id.floatingActionButton);
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent=new Intent("com.halloween.journote.ACTION_START");
+                intent.addCategory("com.halloween.journote.EDIT_ACTIVITY");
+                intent.putExtra("contentPath", "");
+                startActivityForResult(intent,1);
+            }
+        });
 
 
         DatabaseOpenHelper databaseOpenHelper=new DatabaseOpenHelper(this);
@@ -123,46 +124,6 @@ public class MainActivity extends AppCompatActivity {
         String str ="SUN DEC 22 21:35:31 GMT+08:00 2019";
         Date date = new Date();
         try{ date = format1.parse(str);}catch (Exception e){System.out.println("fail");}
-        //Toast.makeText(this,""+date.toString(),Toast.LENGTH_LONG).show();
-
-
-        //new ItemAddition(SAD);
-
-        items.add(new Item("今日随笔","Journote/item2019212201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想法","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("无标题","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("测试","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("实例","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("使用说明","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想不出其他名字了","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想法","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("无标题","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("测试","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("实例","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("使用说明","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想不出其他名字了","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想法","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("无标题","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("测试","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("实例","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("使用说明","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想不出其他名字了","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想法","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("无标题","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("测试","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("实例","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("使用说明","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想不出其他名字了","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("今日随笔","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想法","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("无标题","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("测试","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("实例","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("使用说明","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
-        items.add(new Item("想不出其他名字了","Journote/item2019122201231670",new Date(),"deslate@outlook.com",this));
 
         actionBar=getSupportActionBar();
         decor = this.getWindow().getDecorView();
@@ -174,10 +135,8 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(navView, navController);
 
 
-        test();
-
-
-
+        //test();
     }
+
 
 }

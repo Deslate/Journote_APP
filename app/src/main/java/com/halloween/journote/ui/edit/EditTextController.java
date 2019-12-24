@@ -22,11 +22,14 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -45,16 +48,22 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
     private static Editable editable;
     private String contentPath;
 
-    private enum KeywordType{IMAGE,SEPARATOR,TITLE}
+    private enum KeywordType{IMAGE,SEPARATOR,TITLE,LINK}
 
 
-    public EditTextController (Context context , EditText editText,String contentPath){
+    public EditTextController (Context context , EditText editText){
         this.context = context;
         this.editText = editText;
-        this.contentPath = contentPath;
         editText.addTextChangedListener(this);
         editText.setOnFocusChangeListener(this);
         editable = editText.getEditableText();//获取EditText的文字
+    }
+
+    //TODO 公开方法：开始同步 contentPath 与 EditText
+    public void startControl(String contentPath){
+        System.out.println("EditTextController:Start For "+contentPath+" on "+editText);
+        this.contentPath = contentPath;
+        readToEditable(contentPath);
     }
 
     //TODO 公开方法：将String插入至Editable -public
@@ -71,6 +80,50 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
 
     //TODO 公开方法：根据地址插入图片 -public
     public void insertImage(String text,String path){
+        int start = editText.getSelectionStart();//获取光标位置
+        int end = editText.getSelectionEnd();
+        insertImageWithStartAndEnd(text,path,start,end);//封装，以便替换关键字时调用
+    }
+
+    //TODO 重写 TextChangeListener
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+    }
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+        System.out.println("onTextChange");
+        saveAll();
+        if(before==0&&count>=1){
+            //添加内容的情况
+            getInserted(s,start,count);
+        }else if(before>=1&&count==0){
+            //删除部分内容的情况
+        }else if(before>=1&&count>=1){
+            //替换部分内容的情况
+        }
+    }
+    @Override
+    public void afterTextChanged(Editable s) {
+    }
+
+
+
+    //TODO Insert 的辅助方法，插入内容而不引起监听
+    private void insertWithoutListening(String txt){
+        editText.removeTextChangedListener(this);
+        insert(txt);
+        editText.addTextChangedListener(this);
+    }
+    private void setTextWithoutListening(String txt){
+        editText.removeTextChangedListener(this);
+        editText.setText(txt);
+        editText.addTextChangedListener(this);
+    }
+
+    //TODO InsertImage 的实际方法，根据起始和终止位置插入图片
+    private void insertImageWithStartAndEnd(String text,String path,int start,int end){
+        editable = editText.getEditableText();//获取EditText的文字
+        System.out.println("insertImageWithStartAndEnd:--------Satrt:"+start+"  end:"+end +"editable length: "+ editable.length());
         Toast.makeText(context,"text："+text+"  path："+path,Toast.LENGTH_LONG).show();
         System.out.println(path);
         text = "!["+text+"]("+path+")";
@@ -123,51 +176,26 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
             System.out.println("ss is : "+ss);
             editable.append("\n");
             if (TextUtils.isEmpty(ss)) return;
-            int start = editText.getSelectionStart();//获取光标位置
-            int end = editText.getSelectionEnd();
             if (start < 0 || start >= editable.length()) {
                 editable.append(ss);//选择不存在或在文末
             } else {
-                editable.replace(start, end, ss);//光标所在位置插入文字
+
+                editable.replace(start, end, ss);//光标所在位置插入
             }
 
             editable.append("\n");
             editable.append("\n");
-            Toast.makeText(context,ss,Toast.LENGTH_LONG).show();
+            //Toast.makeText(context,ss,Toast.LENGTH_LONG).show();
         }else{
             Toast.makeText(context,"BitmapFactory.decodeFile(path) ==> null",Toast.LENGTH_LONG).show();
             System.out.println("is null ");
         }
     }
 
-    //TODO 重写 TextChangeListener
-    @Override
-    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-    }
-    @Override
-    public void onTextChanged(CharSequence s, int start, int before, int count) {
-        System.out.println("onTextChange");
-        saveAll();
-        if(before==0&&count>=1){
-            //添加内容的情况
-            getInserted(s,start,count);
-
-        }else if(before>=1&&count==0){
-            //删除部分内容的情况
-        }else if(before>=1&&count>=1){
-            //替换部分内容的情况
-        }
-    }
-    @Override
-    public void afterTextChanged(Editable s) {
-    }
-
-
-
-    //TODO Insert 的辅助方法，插入内容而不引起监听
-    private void insertWithoutListening(String txt){
+    //TODO InsertImageWithStartAndEnd 的无监听版本
+    private void insertImageWithStartAndEndWithoutListening(String text,String path,int start,int end){
         editText.removeTextChangedListener(this);
-        insert(txt);
+        insertImageWithStartAndEnd(text,path,start,end);
         editText.addTextChangedListener(this);
     }
 
@@ -179,49 +207,85 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
         return inserted;
     }
 
-    //TODO 核心：将指定内容进行关键字转换
-
     //TODO 核心：扫描指定内容中的关键字
-    private List<Keyword> scanKeyword(Editable editable){
+    private List<Keyword> scanKeyword(String string){
 
+        System.out.println("EditTextController.scanKeyword---------------start scan keyword");
         List<Keyword> keywordList = new ArrayList<Keyword>();
         Pattern pattern;
         Matcher matcher;
 
+        System.out.println("To scan: length:"+string.length()+"content:"+string);
+
         //TODO 使用正则表达式检索关键字组 ![……](……)
         //正则表达式： "
-        String ImageRegularExpression = "!\\[[^!\\[]*\\]\\([^!\\[]*\\)";
+        String ImageRegularExpression = "!\\[[^\\[]*\\]\\([^!\\[]*\\)";
         //注意： ![image for "![……](……)"](img633619.jpg)  将返回   ![……](……)"](img633619.jpg)
         pattern = Pattern.compile(ImageRegularExpression);
-        matcher = pattern.matcher(editable); // 获取 matcher 对象
-        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.IMAGE)); }
+        matcher = pattern.matcher(string); // 获取 matcher 对象
+        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.IMAGE));
+        System.out.println("EditTextController: scanKeyword => IMAGE: "+matcher.group());}
 
         //TODO 使用正则表达式检索关键字组 [……](……)
         //正则表达式： "
         String LinkRegularExpression = "(?<!!)\\[[^\\[]*\\]\\([^\\[]*\\)";
         pattern = Pattern.compile(ImageRegularExpression);
-        matcher = pattern.matcher(editable); // 获取 matcher 对象
-        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.IMAGE)); }
+        matcher = pattern.matcher(string); // 获取 matcher 对象
+        while(matcher.find()) {
+            keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.LINK));
+            System.out.println("EditTextController: scanKeyword => LINK: "+matcher.group());
+        }
+
 
         //TODO 使用正则表达式检索关键字组 ---
         String separatorRegularExpression = "\\n----*\\n";
         //注意： ![image for "![……](……)"](img633619.jpg)  将返回   ![……](……)"](img633619.jpg)
         pattern = Pattern.compile(ImageRegularExpression);
-        matcher = pattern.matcher(editable); // 获取 matcher 对象
-        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.SEPARATOR)); }
+        matcher = pattern.matcher(string); // 获取 matcher 对象
+        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.SEPARATOR));
+        System.out.println("EditTextController: scanKeyword => SEPARATOR: "+matcher.group());}
 
         //TODO 使用正则表达式检索关键字组 #
         String titleOneRegularExpression = "\\n{1,6}.+";
         //注意： ![image for "![……](……)"](img633619.jpg)  将返回   ![……](……)"](img633619.jpg)
         pattern = Pattern.compile(ImageRegularExpression);
-        matcher = pattern.matcher(editable); // 获取 matcher 对象
-        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.TITLE)); }
+        matcher = pattern.matcher(string); // 获取 matcher 对象
+        while(matcher.find()) { keywordList.add(new Keyword(matcher.start(),matcher.end(),matcher.group(),KeywordType.TITLE));
+        System.out.println("EditTextController: scanKeyword => TITLE: "+matcher.group());}
 
         return keywordList;
     }
 
+    //TODO 核心：进行关键字转换
+    private void convertKeywords(List<Keyword> keywordList){
+        for (Keyword keyword : keywordList) { //使用foreach遍历List
+            //System.out.println(s.getId()+"  "+s.getTitle()+"  "+s.getAuthor());
+            String string = keyword.getOriginalText();
+            switch (keyword.keywordType){
+                case IMAGE:
+                    insertImageWithStartAndEndWithoutListening(
+                            string.substring(string.indexOf("![")+2,string.indexOf("](")),
+                            string.substring(string.indexOf("](")+2,string.indexOf(")")),
+                            keyword.getIndexStart(),
+                            keyword.getIndexEnd());
+                    break;
+                case TITLE:
+                    break;
+                case SEPARATOR:
+                    //insertImageWithStartAndEnd(
+                    //"---",
+                    //"separator",
+                    //keyword.getIndexStart(),
+                    //keyword.getIndexEnd());
+                    break;
+                case LINK:
+                    break;
+            }
+        }
+    }
+
     //TODO 核心：替换指定关键字为Spannable
-    private Editable convertKeyword(Editable editable,List<Keyword> keywords){return editable;};
+    private void convertKeyword(Keyword keyword){};
 
     //TODO 核心类：关键字
     private class Keyword{
@@ -247,11 +311,13 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
         int start = editText.getSelectionStart();//获取光标位置
         int end = editText.getSelectionEnd();
         Editable editable = editText.getEditableText();//获取 EditText 的 Editable
+        editText.removeTextChangedListener(this);
         if (start < 0 || start >= editable.length()) {
             editable.append(insertSpannable);//光标不存在或在文末时，直接插入至文末
         } else {
             editable.replace(start, end, insertSpannable);//光标选中了范围时，在光标所在位置插入文字
         }
+        editText.addTextChangedListener(this);
     }
 
     //一个有趣的移动光标方法
@@ -275,6 +341,7 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
             // 失去焦点
         }
     }
+
     public class mClickableSpan extends ClickableSpan {
         private String path;
         public mClickableSpan(String path){
@@ -287,19 +354,20 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
 
     }
 
-    //TODO SaveAll-全部保存
+    //TODO SaveAll-全部保存,在此开启线程
     public void saveAll(){
-        System.out.println("saveAll: new SaveTask");
+        editable = editText.getText();
+        System.out.println("saveAll: new SaveTask to save "+ editable.toString());
         new SaveTask(editable,contentPath).execute();
     }
 
-    //TODO 开启线程存储内容
+    //TODO 线程：存储内容
     class SaveTask extends AsyncTask<Void,Integer,Boolean> {
         private String saveContentPath;
         private Editable saveEditable;
         public SaveTask(Editable saveEditable,String saveContentPath){
-            this.saveContentPath = contentPath;
-            this.saveEditable = editable;
+            this.saveContentPath = saveContentPath;
+            this.saveEditable = saveEditable;
         }
 
         @Override
@@ -318,12 +386,16 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
             File Journote_NoteFolder =new File(JournoteFolder,"Notes");
             while(!Journote_NoteFolder.exists()){ Journote_NoteFolder.mkdir(); }
 
+
+
             String allData = editable.toString();
+
+            System.out.println("all data : "+allData);
 
             FileOutputStream out = null;
             BufferedWriter writer = null;
             try{
-                out = new FileOutputStream(Journote_NoteFolder+"/data.journote");
+                out = new FileOutputStream(Journote_NoteFolder+"/"+contentPath);
                 writer = new BufferedWriter(new OutputStreamWriter(out));
                 writer.write(allData);
             }catch (IOException e){
@@ -344,6 +416,79 @@ public class EditTextController implements TextWatcher, View.OnFocusChangeListen
         protected void onProgressUpdate(Integer... values){
             //downloadStatus.setText("下载进度："+values[0]+"%");
             //progress.setProgress(values[0]) ;
+        }
+        @Override
+        protected void onPostExecute(Boolean result){
+            System.out.println("SaveTask: onPostExecute");
+            //Toast.makeText(MainActivity.this,"Pose Execute",Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    //TODO 从 文件路径 读取至 editable
+    public void readToEditable(String contentPath){
+        System.out.println("read: new ReadTask");
+        new ReadTask(editText,contentPath).execute();
+
+    }
+
+    //TODO 线程：读取内容
+    class ReadTask extends AsyncTask<Void,Integer,Boolean> {
+        private String saveContentPath;
+        private EditText saveEditText;
+        private String stringGet;
+        public ReadTask(EditText saveEditText,String saveContentPath){
+            this.saveContentPath = saveContentPath;
+            this.saveEditText = saveEditText;
+        }
+
+        @Override
+        protected void onPreExecute(){
+            System.out.println("SaveTask: onPreExecute");
+            //downloadStatus.setText("开始下载 ...");
+            //progress.setProgress(0);
+        }
+        @Override
+        protected Boolean doInBackground(Void... params){
+
+            System.out.println("read in background" );
+
+            File JournoteFolder =new File(Environment.getExternalStorageDirectory(),"Journote");
+            while(!JournoteFolder.exists()){ JournoteFolder.mkdir(); }
+            File Journote_NoteFolder =new File(JournoteFolder,"Notes");
+            while(!Journote_NoteFolder.exists()){ Journote_NoteFolder.mkdir(); }
+
+            FileInputStream in = null;
+            BufferedReader reader = null;
+            StringBuilder content = new StringBuilder();
+            try{
+                in = new FileInputStream(Journote_NoteFolder+"/"+contentPath);
+                reader = new BufferedReader(new InputStreamReader(in));
+                String line = "";
+                while ((line = reader.readLine())!=null){
+                    content.append(line);
+                }
+            }catch (IOException e){
+                e.printStackTrace();
+            }finally {
+                if (reader!=null){
+                    try{
+                        reader.close();
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            stringGet = content.toString();
+            publishProgress(1);
+            return null;
+        }
+        @Override
+        protected void onProgressUpdate(Integer... values){
+            setTextWithoutListening(stringGet);
+            System.out.println("set text stringGet: "+stringGet);
+            convertKeywords(scanKeyword(stringGet));
         }
         @Override
         protected void onPostExecute(Boolean result){

@@ -11,10 +11,12 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -34,6 +36,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.halloween.journote.CrashHandler;
 import com.halloween.journote.R;
 import com.halloween.journote.model.DatabaseManager;
 import com.halloween.journote.model.DatabaseOpenHelper;
@@ -89,6 +92,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
 
     private boolean newCreate;
 
+    private boolean rawMode=false;
+
 
 
     @Override
@@ -113,7 +118,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
 
         //设置EditText跟踪
         editTextController = new EditTextController(this,editContent);
-        editTextController.startControl(contentPath);
+
 
         //设置软键盘收放监听事件
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalLayoutListener(new KeyboardOnGlobalChangeListener());
@@ -121,11 +126,23 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
 
         //设置菜单栏（ActionBar）控件监听
         backBtn.setOnClickListener(this);
-
         editTitle.clearFocus();
         editContent.clearFocus();
         editTitle.setSelected(false);
         editContent.setSelected(false);
+
+
+        //postDelayed不会阻塞线程
+        /*new Handler().postDelayed(new Runnable(){
+            public void run(){
+                editTextController.setRaw();
+                editTextController.setDisplay();
+            }
+        },500);
+
+         */
+        editTextController.startControl(contentPath);
+
 
     }
 
@@ -150,6 +167,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    //TODO 页顶菜单
     private void showPopupMenu(View view){
         PopupMenu popupMenu = new PopupMenu(this,view);
         popupMenu.inflate(R.menu.edit_actbar_main_menu);
@@ -193,6 +211,7 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         String txt = "";
         switch (v.getId()) {
             case R.id.undo_btn:
+                performQuit();
                 break;
             case R.id.img_insert_btn:
                 Intent getAlbum = new Intent(Intent.ACTION_PICK);//////////////////////////
@@ -229,6 +248,8 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             Rect rect = new Rect();
             // 获取当前页面窗口的显示范围
             getWindow().getDecorView().getWindowVisibleDisplayFrame(rect);
+            CrashHandler crashHandler = CrashHandler.getInstance();
+            crashHandler.init(getApplicationContext());
             int screenHeight = getScreenHeight();
             keyboardHeight = screenHeight - rect.bottom; // 输入法的高度
             boolean preShowing = mIsSoftKeyBoardShowing;
@@ -280,6 +301,23 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         fontMenuBtn.setOnClickListener(this);
         commitBtn.setOnClickListener(this);
 
+        //TODO 源码模式
+        fontMenuBtn.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if(rawMode){
+                    rawMode=false;
+                    editTextController.setDisplay();
+                    System.out.println("Set Display");
+                }else {
+                    editTextController.setRaw();
+                    rawMode=true;
+                    System.out.println("Set Raw");
+                }
+                return false;
+            }
+        });
+
         System.out.println("setOnClickListener");
 
         mSoftKeyboardTopPopupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
@@ -292,7 +330,6 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
         mSoftKeyboardTopPopupWindow.showAtLocation(mContainer, Gravity.BOTTOM, x, y);//显示popup,注意虚拟键的处理
         System.out.println("mSoftKeyboardTopPopupWindow = new PopupWindow");
     }
-
     private void updateKeyboardTopPopupWindow(int x, int y) {
         if (mSoftKeyboardTopPopupWindow != null && mSoftKeyboardTopPopupWindow.isShowing()) {
             mSoftKeyboardTopPopupWindow.update(x, y, mSoftKeyboardTopPopupWindow.getWidth(), mSoftKeyboardTopPopupWindow.getHeight());
@@ -373,9 +410,11 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
     //TODO 存储所有信息（根据创建状况判断）
     private void save(){
         editTextController.saveAll();
-        item.addRecord(new Record(new Date(),"default","read",contentPath,this));
-        item.setTitle(editTitle.getText().toString());
-        database.updateItem(item);
+        if(null!=item){
+            item.addRecord(new Record(new Date(),"default","read",contentPath,this));
+            item.setTitle(editTitle.getText().toString());
+            database.updateItem(item);
+        }
     }
     //TODO 初始化Item对象以及输入框内容
     private void performInit(){
@@ -391,6 +430,14 @@ public class EditActivity extends AppCompatActivity implements View.OnClickListe
             item = database.getItem(contentPath);
             editTitle.setText(item.getTitle());
         }
+    }
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP) {
+            performQuit();
+        }
+
+        return super.onKeyUp(keyCode, event);
     }
 
 }

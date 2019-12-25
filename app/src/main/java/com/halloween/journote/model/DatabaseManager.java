@@ -109,12 +109,14 @@ public class DatabaseManager {
     public List<Item> getTop(int request){
         List<Item> response = new ArrayList<Item>();
         Boolean have = true ;
-        long recordNumber = getCurrentItemCount();
-        if(recordNumber<request){request=(int)recordNumber;};
-        for(int i=0;i<request;i++){
-            System.out.println("searchItemWithId"+(recordNumber-i-1)+ " when CurrentItemCount "+(int)getCurrentItemCount());
-            List<ItemString> strings = searchItemWithId(recordNumber-i);
-            response.add(getItem(strings.get(0).getContentPath()));
+        long recordNumber = getLargestItemId();
+        //(recordNumber<request){request=(int)recordNumber;};
+        int i=(int)recordNumber;
+        while(i>0&&response.size()<request){
+            System.out.println("searchItemWithId"+(i)+ " when CurrentItemCount "+(int)getCurrentItemCount());
+            List<ItemString> strings = searchItemWithId(i);
+            if(strings.size()!=0){ response.add(getItem(strings.get(0).getContentPath()));}
+            i--;
         }
         return response;
     }
@@ -131,12 +133,27 @@ public class DatabaseManager {
         cursor.close();
         return count;
     }
+
+
     public long getCurrentItemCount(){
         Cursor cursor= database.rawQuery("select count(1) from Item",null);
         cursor.moveToFirst();
         long count = cursor.getLong(0);
         cursor.close();
         return count;
+    }
+
+
+    public long getLargestItemId(){
+        Cursor cursor= database.query("Item", null, null, null, null, null, "id desc","0,1");
+        long largest = 0;
+        if (cursor.moveToFirst()) {
+            do {
+                largest = cursor.getLong(cursor.getColumnIndex("id"));
+            } while (cursor.moveToNext());
+        }
+        System.out.println("largest Id: "+largest);
+        return largest;
     }
 
     //TODO 新增一个标签 记录

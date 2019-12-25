@@ -68,13 +68,13 @@ public class MainActivity extends AppCompatActivity {
 
     public void test(){
         String REGEX = "!\\[[^\\[]*\\]\\([^!\\[]*\\)";//(?<=\\]\\().*(?=\\))
-        String INPUT = "![/storage/emulated/0/DCIM/Camera/IMG_20191223_134828.jpg](/storage/emulated/0/DCIM/Camera/IMG_20191223_134828.jpg)";
+        String INPUT = "![/storage/emulated/0/Pictures/德川家康·薛定谔/timg (39).jpeg](/storage/emulated/0/Pictures/德川家康·薛定谔/timg (39).jpeg)有钱趣";
         Pattern p = Pattern.compile(REGEX);
         Matcher m = p.matcher(INPUT); // 获取 matcher 对象
         int count = 0;
         while(m.find()) {
             count++;
-            //Toast.makeText(this,m.group(),Toast.LENGTH_LONG).show();
+            Toast.makeText(this,m.group(),Toast.LENGTH_LONG).show();
         }
 
     }
@@ -83,6 +83,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        CrashHandler crashHandler = CrashHandler.getInstance();
+        crashHandler.init(getApplicationContext());
 
         if (Build.VERSION.SDK_INT >= 23) {
             int REQUEST_CODE_CONTACT = 101;
@@ -136,6 +138,9 @@ public class MainActivity extends AppCompatActivity {
 
 
         //test();
+    }
+    public void clearUnsignedItemRecord(){
+
     }
 
 
